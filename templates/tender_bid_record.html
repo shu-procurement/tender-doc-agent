@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建与记录 - 围标串标合规审查</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary: #0a84ff;
+            --accent: #00d4ff;
+            --success: #00e676;
+            --danger: #ff3b5c;
+            --bg-card: rgba(10, 25, 50, 0.45);
+            --border: rgba(0, 180, 255, 0.18);
+            --border-bright: rgba(0, 212, 255, 0.45);
+            --text-primary: #e8f4ff;
+            --text-secondary: #7ab3d4;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .page-wrapper {
+            min-height: 100vh;
+            background:
+                linear-gradient(135deg, rgba(5, 15, 35, 0.6) 0%, rgba(8, 25, 55, 0.55) 100%),
+                url("/static/images/shu-bg.jpg") center/cover no-repeat fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .page-wrapper::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 180, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .page-wrapper::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 2px,
+                rgba(0, 180, 255, 0.012) 2px, rgba(0, 180, 255, 0.012) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+        #particles-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.45;
+        }
+        .top-nav {
+            background: linear-gradient(90deg, rgba(5, 15, 35, 0.95) 0%, rgba(0, 40, 90, 0.90) 100%);
+            backdrop-filter: blur(12px);
+            padding: 0 40px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-bright);
+            position: relative;
+            z-index: 10;
+            animation: headerGlow 4s ease-in-out infinite;
+        }
+        .top-nav::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15); }
+            50%       { box-shadow: 0 2px 40px rgba(0, 180, 255, 0.28); }
+        }
+        .nav-btn {
+            background: rgba(0, 130, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background: rgba(0, 130, 255, 0.35);
+            border-color: rgba(0, 180, 255, 0.6);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-title {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 36px;
+            letter-spacing: 2px;
+            animation: titleShift 3s ease-in-out infinite;
+        }
+        @keyframes titleShift {
+            0%, 100% { text-shadow: 0 0 20px rgba(0, 180, 255, 0.3); }
+            50%       { text-shadow: 0 0 35px rgba(0, 212, 255, 0.55), 0 0 60px rgba(0, 130, 255, 0.2); }
+        }
+        .create-section { margin-bottom: 36px; }
+        .create-card {
+            background: var(--bg-card);
+            border: 2px dashed rgba(0, 180, 255, 0.4);
+            border-radius: 12px;
+            padding: 32px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+        .create-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent);
+        }
+        .create-card:hover {
+            border-color: rgba(0, 212, 255, 0.7);
+            box-shadow: 0 8px 35px rgba(0, 130, 255, 0.2);
+            transform: translateY(-3px);
+        }
+        .create-card-icon { font-size: 36px; margin-bottom: 12px; display: block; }
+        .create-card h3 { color: var(--accent); font-size: 20px; margin-bottom: 8px; letter-spacing: 1px; }
+        .create-card p { color: var(--text-secondary); font-size: 14px; }
+        .section-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-label::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 14px;
+            background: linear-gradient(180deg, var(--accent), var(--primary));
+            border-radius: 2px;
+        }
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .project-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 22px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+        }
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.4), transparent);
+        }
+        .project-card:hover {
+            border-color: rgba(0, 180, 255, 0.4);
+            box-shadow: 0 8px 30px rgba(0, 130, 255, 0.2);
+            transform: translateY(-3px);
+        }
+        .project-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, rgba(255, 100, 50, 0.28), rgba(255, 60, 20, 0.15));
+            border: 1px solid rgba(255, 107, 53, 0.55);
+            color: #ff6b35;
+            text-shadow: 0 0 8px rgba(255, 107, 53, 0.9);
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.2);
+            margin-bottom: 12px;
+        }
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .project-time { font-size: 12px; color: var(--text-secondary); }
+        .empty-tip {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            padding: 40px 0;
+            letter-spacing: 0.5px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .modal-content {
+            background: linear-gradient(135deg, rgba(5, 20, 50, 0.98), rgba(0, 30, 70, 0.98));
+            border: 1px solid var(--border-bright);
+            border-radius: 14px;
+            padding: 36px;
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 40px rgba(0, 130, 255, 0.15);
+            position: relative;
+        }
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        .modal-header { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 24px; letter-spacing: 1px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--text-secondary); font-size: 13px; letter-spacing: 0.5px; }
+        .form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(0, 60, 120, 0.2);
+            border: 1px solid rgba(0, 180, 255, 0.25);
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-primary);
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus { border-color: rgba(0, 212, 255, 0.5); }
+        .form-group input::placeholder { color: rgba(122, 179, 212, 0.5); }
+        .btn-group { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+        .btn { padding: 10px 24px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-family: inherit; transition: all 0.25s ease; }
+        .btn-primary {
+            background: linear-gradient(135deg, #0060cc, #0a84ff);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            box-shadow: 0 0 14px rgba(0, 130, 255, 0.3);
+        }
+        .btn-primary:hover { background: linear-gradient(135deg, #0070e0, #1a94ff); box-shadow: 0 0 22px rgba(0, 150, 255, 0.5); transform: translateY(-1px); }
+        .btn-cancel { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); border: 1px solid rgba(255, 255, 255, 0.12); }
+        .btn-cancel:hover { background: rgba(255, 255, 255, 0.12); color: var(--text-primary); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 255, 0.5); }
+        .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.55s ease, transform 0.55s ease; }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    <div class="page-wrapper">
+        <div class="top-nav">
+            <a href="{{ url_for('index') }}" class="nav-btn">← 返回首页</a>
+            <span class="nav-title">创建与记录 — 围标串标合规审查</span>
+            <div style="width: 100px;"></div>
+        </div>
+
+        <div class="main-container">
+            <h1 class="page-title">围标串标合规审查</h1>
+
+            <div class="create-section reveal">
+                <div class="create-card" onclick="openCreateModal()">
+                    <span class="create-card-icon">＋</span>
+                    <h3>创建项目</h3>
+                    <p>新建围标串标合规审查项目，上传多份投标合同进行围标串标智能分析</p>
+                </div>
+            </div>
+
+            {% if projects %}
+            <div class="section-label reveal">历史记录</div>
+            <div class="project-grid">
+                {% for project in projects %}
+                <div class="project-card reveal" onclick="openProject('{{ project.id }}')">
+                    <div class="project-tag">围标串标合规审查</div>
+                    <div class="project-name">{{ project.name }}</div>
+                    <div class="project-time">编辑于 {{ project.created_at }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-tip reveal">暂无项目记录，点击上方「创建项目」开始</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <form id="createProjectForm" action="{{ url_for('create_tender_bid_project') }}" method="POST">
+                <input type="hidden" name="project_type" value="tender_bid">
+                <div class="modal-header">创建围标串标合规审查项目</div>
+                <div class="form-group">
+                    <label>项目名称 *</label>
+                    <input type="text" name="project_name" placeholder="请输入项目名称" required>
+                </div>
+                <div class="form-group">
+                    <label>备注（选填）</label>
+                    <input type="text" name="project_desc" placeholder="请输入备注信息">
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-cancel" onclick="closeCreateModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">确认创建</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openCreateModal() { document.getElementById('createModal').style.display = 'flex'; }
+        function closeCreateModal() { document.getElementById('createModal').style.display = 'none'; }
+        function openProject(projectId) { window.location.href = `/tender_bid?project_id=${projectId}`; }
+        document.getElementById('createModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCreateModal();
+        });
+    </script>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H, particles = [];
+            function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+            resize();
+            window.addEventListener('resize', resize);
+            for (let i = 0; i < 55; i++) {
+                particles.push({
+                    x: Math.random() * 1920, y: Math.random() * 1080,
+                    r: Math.random() * 1.5 + 0.4,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    a: Math.random() * 0.5 + 0.2
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0,212,255,${p.a})`;
+                    ctx.fill();
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                });
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0,180,255,${0.12 * (1 - dist/120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        (function() {
+            const els = document.querySelectorAll('.reveal');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+            }, { threshold: 0.08 });
+            els.forEach(el => io.observe(el));
+        })();
+    </script>
+</body>
+</html>

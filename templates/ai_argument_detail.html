@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI辅助论证 - 合同评分</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --primary: #0a84ff;
+            --primary-dark: #0060cc;
+            --accent: #00d4ff;
+            --success: #00e676;
+            --danger: #ff3b5c;
+            --bg-deep: rgba(5, 15, 35, 0.65);
+            --bg-card: rgba(10, 25, 50, 0.45);
+            --bg-card-hover: rgba(10, 35, 70, 0.55);
+            --border: rgba(0, 180, 255, 0.18);
+            --border-bright: rgba(0, 212, 255, 0.45);
+            --text-primary: #e8f4ff;
+            --text-secondary: #7ab3d4;
+            --glow-blue: 0 0 18px rgba(0, 180, 255, 0.35);
+            --glow-green: 0 0 18px rgba(0, 230, 118, 0.35);
+        }
+
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: rgba(5, 15, 35, 0.65);
+            background-image:
+                linear-gradient(135deg, rgba(5, 15, 35, 0.6) 0%, rgba(8, 25, 55, 0.55) 100%),
+                radial-gradient(ellipse at 20% 20%, rgba(0, 80, 180, 0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 80% 80%, rgba(0, 180, 255, 0.08) 0%, transparent 55%);
+            font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ===== Animated grid background ===== */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 180, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            position: relative;
+            z-index: 10;
+            background: linear-gradient(90deg, rgba(5, 15, 35, 0.85) 0%, rgba(0, 40, 90, 0.8) 100%);
+            border-bottom: 1px solid var(--border-bright);
+            padding: 0 40px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15);
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header a {
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 13px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+        .header a:hover { color: #fff; }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 1px;
+        }
+
+        .header-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            background: rgba(0, 212, 255, 0.12);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        /* ===== Container ===== */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 36px auto;
+            padding: 0 24px;
+        }
+
+        /* ===== Top bar ===== */
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        /* ===== Buttons ===== */
+        .btn-primary, .btn-success, .btn-danger {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 22px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            transition: all 0.25s ease;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #0060cc, #0a84ff);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            box-shadow: 0 0 14px rgba(0, 130, 255, 0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0070e0, #1a94ff);
+            box-shadow: 0 0 22px rgba(0, 150, 255, 0.5);
+            transform: translateY(-1px);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #007a40, #00c060);
+            color: #fff;
+            border: 1px solid rgba(0, 230, 118, 0.35);
+            box-shadow: 0 0 14px rgba(0, 200, 100, 0.25);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #009050, #00d870);
+            box-shadow: 0 0 22px rgba(0, 220, 120, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn-success:disabled {
+            background: linear-gradient(135deg, #1a3a2a, #1a4a30);
+            color: #4a7a5a;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #8b0020, #cc1a3a);
+            color: #fff;
+            border: 1px solid rgba(255, 60, 90, 0.35);
+            box-shadow: 0 0 14px rgba(200, 30, 60, 0.2);
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #a0002a, #e01a40);
+            box-shadow: 0 0 22px rgba(220, 40, 70, 0.4);
+            transform: translateY(-1px);
+        }
+
+        /* Ripple effect */
+        .btn-primary::after, .btn-success::after, .btn-danger::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), transparent);
+            pointer-events: none;
+        }
+
+        /* ===== Panel (shared card style) ===== */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(180deg, var(--accent), var(--primary));
+            border-radius: 2px;
+        }
+
+        /* ===== Upload section ===== */
+        .upload-section {
+            /* uses .panel */
+        }
+
+        .upload-btn-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .file-input { display: none; }
+
+        .file-list { margin-top: 18px; }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            background: rgba(0, 100, 200, 0.1);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            border-radius: 6px;
+            margin-bottom: 8px;
+            transition: background 0.2s;
+        }
+        .file-item:hover { background: rgba(0, 120, 220, 0.18); }
+
+        .file-name {
+            color: var(--text-primary);
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-name::before {
+            content: '◈';
+            color: var(--accent);
+            font-size: 10px;
+        }
+
+        .file-remove {
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 60, 90, 0.25);
+            transition: all 0.2s;
+        }
+        .file-remove:hover {
+            background: rgba(255, 60, 90, 0.15);
+            border-color: rgba(255, 60, 90, 0.5);
+        }
+
+        /* ===== Result section ===== */
+        .result-tip {
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+            padding: 40px 0;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== Contract cards ===== */
+        .contract-card {
+            background: rgba(5, 20, 45, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 22px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .contract-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.3), transparent);
+        }
+        .contract-card:hover {
+            border-color: rgba(0, 180, 255, 0.35);
+            box-shadow: var(--glow-blue);
+            transform: translateY(-2px);
+        }
+
+        .best-contract {
+            background: rgba(0, 40, 20, 0.5);
+            border: 1px solid rgba(0, 230, 118, 0.4);
+            box-shadow: var(--glow-green);
+        }
+        .best-contract::before {
+            background: linear-gradient(90deg, transparent, rgba(0, 230, 118, 0.5), transparent);
+        }
+
+        .contract-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .contract-name-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .contract-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .best-badge {
+            background: linear-gradient(135deg, #007a40, #00c060);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            box-shadow: 0 0 10px rgba(0, 200, 100, 0.4);
+        }
+
+        .contract-score {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--success);
+            text-shadow: 0 0 16px rgba(0, 230, 118, 0.5);
+            font-variant-numeric: tabular-nums;
+        }
+        .contract-score span {
+            font-size: 14px;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-left: 2px;
+        }
+
+        /* Score items */
+        .score-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .score-item {
+            background: rgba(0, 80, 160, 0.12);
+            border: 1px solid rgba(0, 150, 255, 0.12);
+            border-radius: 6px;
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .score-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        .score-value {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--accent);
+        }
+
+        /* Score bar */
+        .score-bar-wrap {
+            height: 3px;
+            background: rgba(0, 180, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .score-bar {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width 0.8s ease;
+        }
+
+        /* Evaluation */
+        .evaluation {
+            margin-top: 14px;
+            padding: 12px 16px;
+            background: rgba(0, 100, 200, 0.08);
+            border-left: 2px solid var(--primary);
+            border-radius: 0 6px 6px 0;
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+        .evaluation strong {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* ===== Loading animation ===== */
+        .loading-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px 0;
+            gap: 16px;
+        }
+        .loading-ring {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 180, 255, 0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 13px;
+            letter-spacing: 1px;
+        }
+
+        /* ===== Scrollbar ===== */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 255, 0.5); }
+
+        /* ===== Nav button (matches generate/compliance style) ===== */
+        .nav-btn {
+            background: rgba(0, 130, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background: rgba(0, 130, 255, 0.35);
+            border-color: rgba(0, 180, 255, 0.6);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+
+        /* ===== Floating particles ===== */
+        #particles-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+        }
+
+        /* ===== Scroll reveal ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* ===== Panel entrance animation ===== */
+        @keyframes panelIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== Glow pulse on header ===== */
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15); }
+            50%       { box-shadow: 0 2px 40px rgba(0, 180, 255, 0.28); }
+        }
+        .header { animation: headerGlow 4s ease-in-out infinite; }
+
+        /* ===== Animated gradient border on panel hover ===== */
+        .panel {
+            transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .panel:hover {
+            border-color: rgba(0, 180, 255, 0.35);
+            box-shadow: 0 8px 35px rgba(0, 130, 255, 0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+            transform: translateY(-2px);
+        }
+
+        /* ===== Shimmer on btn-primary ===== */
+        @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .btn-primary, .btn-success, .btn-danger {
+            background-size: 200% auto;
+        }
+        .btn-primary:hover {
+            background-image: linear-gradient(135deg, #0060cc, #0a84ff, #00d4ff, #0a84ff, #0060cc);
+            animation: shimmer 1.5s linear infinite;
+        }
+
+        /* ===== Scan line overlay ===== */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 180, 255, 0.012) 2px,
+                rgba(0, 180, 255, 0.012) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Particles canvas -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <a href="{{ url_for('ai_argument') }}" class="nav-btn">← 返回记录</a>
+            <span style="color: rgba(0,180,255,0.3)">|</span>
+            <span class="header-title">合同智能评分</span>
+            <span class="header-badge">AI POWERED</span>
+        </div>
+        <button id="saveBtn" class="nav-btn">保存结果</button>
+    </div>
+
+    <div class="container">
+        <!-- Scoring criteria panel -->
+        <div class="panel reveal">
+            <div class="panel-title">评分维度配置</div>
+
+            <!-- 上传招标文件提取维度 -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <input type="file" id="criteriaFileInput" style="display:none" accept=".pdf,.doc,.docx,.txt">
+                <button id="criteriaUploadBtn" style="background:rgba(0,130,255,0.18);border:1px solid rgba(0,180,255,0.35);color:var(--accent);padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+                    <span>📄</span> 上传招标文件自动提取评分维度
+                </button>
+                <span id="criteriaFileStatus" style="color:var(--text-secondary);font-size:12px;"></span>
+                <button onclick="resetDimensions()" style="background:rgba(255,60,90,0.1);border:1px solid rgba(255,60,90,0.2);color:#ff6b8a;padding:7px 14px;border-radius:6px;font-size:12px;cursor:pointer;margin-left:auto;">重置为默认</button>
+            </div>
+
+            <!-- 可编辑维度表格 -->
+            <div style="margin-bottom:8px;color:var(--text-secondary);font-size:12px;">手动修改各维度名称和分值，总分须为 100 分：</div>
+            <div id="dimensionTable" style="display:grid;grid-template-columns:1fr 120px;gap:6px 10px;align-items:center;margin-bottom:12px;">
+                <!-- 由 JS 渲染 -->
+            </div>
+
+            <!-- 总分提示 -->
+            <div id="scoreHint" style="font-size:13px;padding:8px 14px;border-radius:6px;margin-bottom:14px;"></div>
+
+            <!-- 项目背景补充 -->
+            <div style="color: var(--text-secondary); font-size: 12px; margin-bottom:6px;">项目背景与特殊要求（选填，AI 评分时重点关注）：</div>
+            <textarea id="customCriteria" placeholder="例如：本项目为LED虚拟摄影棚采购，要求像素间距≤2.31mm..." style="width:100%;height:80px;background:rgba(0,60,120,0.15);border:1px solid rgba(0,180,255,0.2);border-radius:6px;padding:10px 14px;color:var(--text-primary);font-size:13px;line-height:1.7;resize:vertical;font-family:inherit;outline:none;" onfocus="this.style.borderColor='rgba(0,212,255,0.5)'" onblur="this.style.borderColor='rgba(0,180,255,0.2)'"></textarea>
+        </div>
+
+        <!-- Upload panel -->
+        <div class="panel upload-section reveal">
+            <div class="panel-title">上传投标文件</div>
+            <div class="upload-btn-row">
+                <input type="file" id="fileInput" class="file-input" accept=".pdf,.doc,.docx,.txt" multiple>
+                <button id="uploadBtn" class="btn-primary">选择文件</button>
+                <span style="color: var(--text-secondary); font-size: 12px;">支持 PDF / DOC / DOCX / TXT，可多选</span>
+            </div>
+            <div class="file-list" id="fileList"></div>
+        </div>
+
+        <!-- Action panel -->
+        <div class="panel reveal" style="padding: 18px 28px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button id="analyzeBtn" class="btn-success">▶ 开始分析评分</button>
+                <button id="clearBtn" class="btn-danger">清空所有</button>
+            </div>
+        </div>
+
+        <!-- Result panel -->
+        <div class="panel result-section reveal">
+            <div class="panel-title">分析结果</div>
+            <div id="resultContainer">
+                <div class="result-tip">上传投标文件后，点击「开始分析评分」，AI 将结合通用评分标准与专项标准自动评估并推荐最优投标方。</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const projectId = new URLSearchParams(window.location.search).get('project_id');
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const fileList = document.getElementById('fileList');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resultContainer = document.getElementById('resultContainer');
+        const saveBtn = document.getElementById('saveBtn');
+
+        let uploadedFiles = [];
+        let lastAnalysisData = null;
+
+        // ===== 评分维度管理 =====
+        const DEFAULT_DIMENSIONS = [
+            { key: 'price_score',      label: '报价得分',     max_score: 30 },
+            { key: 'tech_score',       label: '技术方案',     max_score: 45 },
+            { key: 'onsite_service',   label: '驻场服务',     max_score: 5  },
+            { key: 'onsite_personnel', label: '驻场人员资历', max_score: 6  },
+            { key: 'after_sales',      label: '售后服务内容', max_score: 3  },
+            { key: 'overall_strength', label: '综合实力',     max_score: 4  },
+            { key: 'past_performance', label: '近三年业绩',   max_score: 5  },
+            { key: 'doc_quality',      label: '投标文件编制', max_score: 2  }
+        ];
+        let currentDimensions = JSON.parse(JSON.stringify(DEFAULT_DIMENSIONS));
+
+        function renderDimensionTable() {
+            const table = document.getElementById('dimensionTable');
+            table.innerHTML = `
+                <div style="color:var(--text-secondary);font-size:11px;padding:2px 0;">维度名称</div>
+                <div style="color:var(--text-secondary);font-size:11px;padding:2px 0;">满分</div>
+            `;
+            currentDimensions.forEach((dim, i) => {
+                const nameInput = document.createElement('input');
+                nameInput.value = dim.label;
+                nameInput.style.cssText = 'background:rgba(0,60,120,0.2);border:1px solid rgba(0,180,255,0.2);border-radius:5px;padding:6px 10px;color:var(--text-primary);font-size:13px;width:100%;outline:none;';
+                nameInput.addEventListener('input', e => { currentDimensions[i].label = e.target.value; });
+                nameInput.addEventListener('focus', e => e.target.style.borderColor = 'rgba(0,212,255,0.5)');
+                nameInput.addEventListener('blur', e => e.target.style.borderColor = 'rgba(0,180,255,0.2)');
+
+                const scoreInput = document.createElement('input');
+                scoreInput.type = 'number';
+                scoreInput.min = 0;
+                scoreInput.max = 100;
+                scoreInput.value = dim.max_score;
+                scoreInput.style.cssText = 'background:rgba(0,60,120,0.2);border:1px solid rgba(0,180,255,0.2);border-radius:5px;padding:6px 10px;color:var(--accent);font-size:13px;width:100%;outline:none;text-align:center;';
+                scoreInput.addEventListener('input', e => {
+                    currentDimensions[i].max_score = parseInt(e.target.value) || 0;
+                    updateScoreHint();
+                });
+                scoreInput.addEventListener('focus', e => e.target.style.borderColor = 'rgba(0,212,255,0.5)');
+                scoreInput.addEventListener('blur', e => e.target.style.borderColor = 'rgba(0,180,255,0.2)');
+
+                table.appendChild(nameInput);
+                table.appendChild(scoreInput);
+            });
+            updateScoreHint();
+        }
+
+        function updateScoreHint() {
+            const total = currentDimensions.reduce((s, d) => s + (parseInt(d.max_score) || 0), 0);
+            const hint = document.getElementById('scoreHint');
+            const diff = 100 - total;
+            if (diff === 0) {
+                hint.style.cssText = 'font-size:13px;padding:8px 14px;border-radius:6px;margin-bottom:14px;background:rgba(0,230,118,0.1);border:1px solid rgba(0,230,118,0.3);color:var(--success);';
+                hint.innerHTML = '✅ 总分 100 分，配置通过';
+            } else if (diff > 0) {
+                hint.style.cssText = 'font-size:13px;padding:8px 14px;border-radius:6px;margin-bottom:14px;background:rgba(255,180,0,0.08);border:1px solid rgba(255,180,0,0.25);color:#ffcc44;';
+                hint.innerHTML = `⚠️ 当前总分 ${total} 分，还差 <strong>${diff}</strong> 分才能达到 100 分`;
+            } else {
+                hint.style.cssText = 'font-size:13px;padding:8px 14px;border-radius:6px;margin-bottom:14px;background:rgba(255,60,90,0.08);border:1px solid rgba(255,60,90,0.25);color:var(--danger);';
+                hint.innerHTML = `❌ 当前总分 ${total} 分，超出 <strong>${Math.abs(diff)}</strong> 分，请减少各维度分值`;
+            }
+        }
+
+        function resetDimensions() {
+            currentDimensions = JSON.parse(JSON.stringify(DEFAULT_DIMENSIONS));
+            renderDimensionTable();
+        }
+
+        // 上传招标文件提取维度
+        const criteriaFileInput = document.getElementById('criteriaFileInput');
+        const criteriaUploadBtn = document.getElementById('criteriaUploadBtn');
+        const criteriaFileStatus = document.getElementById('criteriaFileStatus');
+
+        criteriaUploadBtn.addEventListener('click', () => criteriaFileInput.click());
+        criteriaFileInput.addEventListener('change', async () => {
+            const file = criteriaFileInput.files[0];
+            if (!file) return;
+            criteriaFileStatus.textContent = '上传中...';
+            criteriaUploadBtn.disabled = true;
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const uploadResp = await fetch('/upload', { method: 'POST', body: formData });
+                const uploadData = await uploadResp.json();
+                if (!uploadData.success) throw new Error(uploadData.error);
+
+                criteriaFileStatus.textContent = 'AI 提取评分维度中...';
+                const extractResp = await fetch('/extract_scoring_criteria', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: uploadData.content })
+                });
+                const extractData = await extractResp.json();
+                if (!extractData.success) throw new Error(extractData.error);
+
+                currentDimensions = extractData.dimensions.map((d, i) => ({
+                    key: d.key || `dim_${i+1}`,
+                    label: d.label,
+                    max_score: d.max_score
+                }));
+                renderDimensionTable();
+                criteriaFileStatus.textContent = `✅ 已从「${file.name}」提取 ${currentDimensions.length} 个维度（总分 ${extractData.total} 分）`;
+                criteriaFileStatus.style.color = 'var(--success)';
+            } catch (err) {
+                criteriaFileStatus.textContent = `❌ 提取失败：${err.message}`;
+                criteriaFileStatus.style.color = 'var(--danger)';
+            } finally {
+                criteriaUploadBtn.disabled = false;
+                criteriaFileInput.value = '';
+            }
+        });
+
+        // 初始化渲染
+        renderDimensionTable();
+
+        uploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            for (const file of files) {
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                    const response = await fetch('/upload', { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (data.success) {
+                        uploadedFiles.push({ name: file.name, content: data.content });
+                        renderFileList();
+                    } else {
+                        alert(`文件 ${file.name} 处理失败：${data.error}`);
+                    }
+                } catch (err) {
+                    alert(`文件 ${file.name} 上传失败：${err.message}`);
+                }
+            }
+        });
+
+        function renderFileList() {
+            fileList.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-remove" onclick="removeFile(${index})">移除</span>
+                `;
+                fileList.appendChild(item);
+            });
+        }
+
+        function removeFile(index) {
+            uploadedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        analyzeBtn.addEventListener('click', async () => {
+            if (uploadedFiles.length === 0) {
+                alert('请先上传至少一份投标文件');
+                return;
+            }
+            const customCriteria = document.getElementById('customCriteria').value.trim();
+            analyzeBtn.disabled = true;
+            analyzeBtn.innerHTML = '分析中...';
+            resultContainer.innerHTML = `
+                <div class="loading-wrap">
+                    <div class="loading-ring"></div>
+                    <div class="loading-text">AI 正在深度分析投标文件，请稍候...</div>
+                </div>`;
+            try {
+                const response = await fetch('/analyze_contracts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: projectId,
+                        contracts: uploadedFiles,
+                        custom_criteria: customCriteria,
+                        dimensions: currentDimensions
+                    })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    lastAnalysisData = data.data;
+                    renderAnalysisResult(data.data);
+                    // 自动保存维度，确保刷新后能正确恢复
+                    fetch('/save_project', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            project_id: projectId,
+                            contracts: uploadedFiles,
+                            analysis: data.data,
+                            dimensions: currentDimensions
+                        })
+                    });
+                } else {
+                    alert(`分析失败：${data.error}`);
+                resultContainer.innerHTML = `<div class="result-tip" style="color: var(--danger);">分析失败：${data.error}</div>`;
+                }
+            } catch (err) {
+                alert(`请求出错：${err.message}`);
+                resultContainer.innerHTML = `<div class="result-tip" style="color: var(--danger);">请求出错：${err.message}</div>`;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerHTML = '▶ 开始分析评分';
+            }
+        });
+
+        function renderAnalysisResult(data) {
+    resultContainer.innerHTML = '';
+    if (!data.contracts || data.contracts.length === 0) {
+        resultContainer.innerHTML = '<div class="result-tip">未获取到有效分析结果</div>';
+        return;
+    }
+    const bestContract = data.contracts.reduce((max, curr) =>
+        curr.scores.total_score > max.scores.total_score ? curr : max, data.contracts[0]);
+
+    const dimensions = currentDimensions.map(d => ({
+        key: d.key, label: d.label, max: d.max_score
+    }));
+
+    // 对比图数据
+    const chartData = {
+        categories: dimensions.map(d => d.label),
+        contractNames: [],
+        scores: []
+    };
+
+    // 先把对比图占位 div 插到最前面（这样后续 append 的卡片不会被 prepend 打乱顺序）
+    let compareChartDiv = null;
+    if (data.contracts.length > 1) {
+        compareChartDiv = document.createElement('div');
+        compareChartDiv.className = 'panel';
+        compareChartDiv.innerHTML = `
+            <div class="panel-title">投标文件对比分析</div>
+            <div id="compareChart" style="width:100%;height:380px;background:transparent;"></div>
+        `;
+        resultContainer.appendChild(compareChartDiv);
+    }
+
+    // 收集所有需要初始化的雷达图
+    const radarQueue = [];
+
+    data.contracts.forEach((contract, contractIdx) => {
+        const scores = contract.scores || {};
+        chartData.contractNames.push(contract.name);
+        chartData.scores.push(dimensions.map(d => scores[d.key] || 0));
+
+        const isBest = contract.id === bestContract.id;
+        const card = document.createElement('div');
+        card.className = `contract-card ${isBest ? 'best-contract' : ''}`;
+
+        let scoresHtml = '<div class="score-grid">';
+        dimensions.forEach(({ key, label, max }) => {
+            const value = scores[key] || 0;
+            const pct = Math.min(100, (value / max) * 100);
+            scoresHtml += `
+                <div class="score-item">
+                    <div>
+                        <div class="score-label">${label}</div>
+                        <div class="score-bar-wrap"><div class="score-bar" style="width:${pct}%"></div></div>
+                    </div>
+                    <span class="score-value">${value.toFixed(1)}</span>
+                </div>`;
+        });
+        scoresHtml += '</div>';
+
+        const contractChartId = `chart_${contractIdx}`;
+
+        card.innerHTML = `
+            <div class="contract-header">
+                <div class="contract-name-row">
+                    <span class="contract-name">${contract.name}</span>
+                    ${isBest ? '<span class="best-badge">最优推荐</span>' : ''}
+                </div>
+                <div class="contract-score">${contract.scores.total_score.toFixed(1)}<span>分</span></div>
+            </div>
+            <div id="${contractChartId}" style="width:100%;height:260px;margin:15px 0;"></div>
+            ${scoresHtml}
+            <div class="evaluation"><strong>综合评价：</strong>${contract.evaluation}</div>
+        `;
+        resultContainer.appendChild(card);
+        radarQueue.push({ chartId: contractChartId, scores, contractName: contract.name });
+    });
+
+    // 所有 DOM 都 append 完毕后，统一初始化所有图表
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            radarQueue.forEach(({ chartId, scores, contractName }) => {
+                initRadarChart(chartId, scores, contractName, dimensions);
+            });
+            if (compareChartDiv) {
+                initCompareChart('compareChart', chartData, bestContract.name);
+            }
+            // 延迟再 resize 一次，修复部分卡片宽度未就绪的问题
+            setTimeout(() => {
+                radarQueue.forEach(({ chartId }) => {
+                    const instance = echarts.getInstanceByDom(document.getElementById(chartId));
+                    if (instance) instance.resize();
+                });
+            }, 100);
+        });
+    });
+}
+
+// 初始化单个合同的雷达图
+function initRadarChart(chartId, scores, contractName, dimensions) {
+    const dom = document.getElementById(chartId);
+    if (!dom) return;
+    const myChart = echarts.init(dom);
+    const option = {
+        tooltip: { trigger: 'item' },
+        radar: {
+            indicator: dimensions.map(d => ({ name: d.label, max: d.max })),
+            radius: '65%',
+            axisName: { color: '#7ab3d4', fontSize: 11 },
+            splitLine: { lineStyle: { color: 'rgba(0, 180, 255, 0.15)' } },
+            splitArea: { show: false },
+            axisLine: { lineStyle: { color: 'rgba(0, 180, 255, 0.3)' } }
+        },
+        series: [{
+            type: 'radar',
+            data: [{
+                value: dimensions.map(d => scores[d.key] || 0),
+                name: contractName,
+                itemStyle: { color: '#00d4ff' },
+                areaStyle: { color: 'rgba(0, 212, 255, 0.25)' },
+                lineStyle: { width: 2 }
+            }]
+        }]
+    };
+    myChart.setOption(option);
+    myChart.resize();
+    window.addEventListener('resize', () => myChart.resize());
+}
+
+// 初始化多合同对比柱状图
+function initCompareChart(chartId, chartData, bestName) {
+    const dom = document.getElementById(chartId);
+    if (!dom) return;
+    const myChart = echarts.init(dom);
+    const series = chartData.contractNames.map((name, index) => ({
+        name: name,
+        type: 'bar',
+        data: chartData.scores[index],
+        itemStyle: {
+            color: name === bestName ? '#00e676' : '#0a84ff'
+        }
+    }));
+    const option = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: {
+            data: chartData.contractNames,
+            textStyle: { color: '#e8f4ff' },
+            top: 0
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        xAxis: {
+            type: 'category',
+            data: chartData.categories,
+            axisLine: { lineStyle: { color: 'rgba(0, 180, 255, 0.3)' } },
+            axisLabel: { color: '#7ab3d4', rotate: 15 }
+        },
+        yAxis: {
+            type: 'value',
+            axisLine: { lineStyle: { color: 'rgba(0, 180, 255, 0.3)' } },
+            axisLabel: { color: '#7ab3d4' },
+            splitLine: { lineStyle: { color: 'rgba(0, 180, 255, 0.1)' } }
+        },
+        series: series
+    };
+    myChart.setOption(option);
+    window.addEventListener('resize', () => myChart.resize());
+}
+
+         function getScoreLabel(key) {
+             const dim = currentDimensions.find(d => d.key === key);
+             return dim ? dim.label : key;
+         }
+
+         function fillExample() {
+             document.getElementById('customCriteria').value = '本项目为LED虚拟摄影棚显示系统采购，建设面积约161平方米。核心技术要求：像素间距≤2.31mm，额定峰值亮度≥1500nits，色域REC709>99%，水平/垂直视角>170°，需提供CCC/RoHS/CE-EMC认证。驻场人员须具备LED显示系统安装调试经验，质保期不少于3年。请重点关注投标人对上述技术指标的响应程度及驻场服务承诺。';
+         }
+
+         clearBtn.addEventListener('click', () => {
+             if (confirm('确定要清空所有文件和结果吗？')) {
+                 uploadedFiles = [];
+                 renderFileList();
+                 resultContainer.innerHTML = '<div class="result-tip">上传投标文件后，点击「开始分析评分」，AI 将结合通用评分标准与专项标准自动评估并推荐最优投标方。</div>';
+             }
+         });
+
+         saveBtn.addEventListener('click', async () => {
+             try {
+                 const response = await fetch('/save_project', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({
+                         project_id: projectId,
+                         contracts: uploadedFiles,
+                         analysis: lastAnalysisData,
+                         result: resultContainer.innerHTML,
+                         dimensions: currentDimensions
+                     })
+                 });
+                 const data = await response.json();
+                 if (data.success) {
+                     alert('已全部保存');
+                 } else {
+                     alert('保存失败：' + (data.error || '未知错误'));
+                 }
+             } catch (err) {
+                 alert('保存失败，请检查网络连接');
+             }
+         });
+
+         // 页面加载时恢复项目数据
+         if (projectId) {
+             fetch(`/get_project_data?project_id=${projectId}`)
+                 .then(res => res.json())
+                 .then(data => {
+                     if (data.success && data.data) {
+                         if (data.data.contracts) {
+                             uploadedFiles = data.data.contracts;
+                             renderFileList();
+                         }
+                         if (data.data.dimensions && data.data.dimensions.length > 0) {
+                             currentDimensions = data.data.dimensions;
+                             renderDimensionTable();
+                         }
+                         if (data.data.analysis) {
+                             lastAnalysisData = data.data.analysis;
+                             renderAnalysisResult(data.data.analysis);
+                         }
+                     }
+                 });
+         }
+     </script>
+
+    <!-- Particles + Scroll Reveal -->
+    <script>
+        // Floating particles
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H, particles = [];
+            function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+            resize();
+            window.addEventListener('resize', resize);
+            for (let i = 0; i < 55; i++) {
+                particles.push({
+                    x: Math.random() * 1920, y: Math.random() * 1080,
+                    r: Math.random() * 1.5 + 0.4,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    a: Math.random() * 0.5 + 0.2
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0,212,255,${p.a})`;
+                    ctx.fill();
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                });
+                // draw connecting lines
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0,180,255,${0.12 * (1 - dist/120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        // Scroll reveal
+        (function() {
+            const els = document.querySelectorAll('.reveal');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+            }, { threshold: 0.1 });
+            els.forEach(el => io.observe(el));
+        })();
+
+        // Parallax on header grid
+        window.addEventListener('scroll', () => {
+            const y = window.scrollY;
+            document.body.style.backgroundPositionY = `${y * 0.3}px`;
+        });
+    </script>
+</body>
+</html>

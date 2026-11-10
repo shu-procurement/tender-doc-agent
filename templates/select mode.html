@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择功能模式 - {{ module_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="mode-container">
+        <header class="header">
+            <a href="{{ url_for('create_record', module_name=module_name) }}" class="back-btn">← 返回</a>
+            <h2>选择功能模式</h2>
+        </header>
+
+        <form action="{{ url_for('create_project') }}" method="POST" class="mode-form">
+            <input type="hidden" name="project_type" value="{{ module_name }}">
+
+            <div class="mode-options">
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="generate" required>
+                    <div class="mode-card">
+                        <h3>招标文件智能生成</h3>
+                        <p>根据结构化信息生成完整招标文件</p>
+                    </div>
+                </label>
+                <label class="mode-option">
+                    <input type="radio" name="mode" value="compliance" required>
+                    <div class="mode-card">
+                        <h3>招标文件合规性审查</h3>
+                        <p>对招标文件进行合规性智能审核</p>
+                    </div>
+                </label>
+            </div>
+
+            <div class="project-info">
+                <label for="project_name">项目名称 *</label>
+                <input type="text" id="project_name" name="project_name" required placeholder="请输入项目名称">
+
+                <label for="project_desc">项目备注（选填）</label>
+                <textarea id="project_desc" name="project_desc" placeholder="请输入项目备注"></textarea>
+            </div>
+
+            <button type="submit" class="create-btn">创建</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# 虚拟环境 / 依赖
+.venv/
+venv/
+env/
+node_modules/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# 运行产物与数据（可能含业务数据，禁止提交）
+*.log
+*.sqlite3
+*.sqlite
+*.db
+data/
+chroma/
+vector_store/
+uploads/
+generated/
+temp/
+tmp/
+
+# 密钥与本地配置
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE / 系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+# 本地环境与运行产物（发布版强制排除）

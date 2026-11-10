@@ -1,0 +1,261 @@
+app:
+  description: 投标论证围标串标智能分析工作流，接收多份投标文件内容，依据法定围串标判断准则进行AI语义分析，输出风险等级、各投标方分析、违规行为详情、综合结论及雷同段落对比数据。
+  icon: "\U0001F50D"
+  icon_background: '#E8F4FF'
+  mode: workflow
+  name: 投标论证-围标串标分析
+  use_icon_as_answer_icon: false
+kind: app
+version: 0.1.3
+workflow:
+  conversation_variables: []
+  environment_variables: []
+  features:
+    file_upload:
+      allowed_file_extensions:
+      - .pdf
+      - .doc
+      - .docx
+      - .txt
+      allowed_file_types:
+      - document
+      allowed_file_upload_methods:
+      - local_file
+      - remote_url
+      enabled: false
+      fileUploadConfig:
+        audio_file_size_limit: 50
+        batch_count_limit: 5
+        file_size_limit: 15
+        image_file_size_limit: 10
+        video_file_size_limit: 100
+        workflow_file_upload_limit: 10
+      image:
+        enabled: false
+        number_limits: 3
+        transfer_methods:
+        - local_file
+        - remote_url
+      number_limits: 3
+    opening_statement: ''
+    retriever_resource:
+      enabled: false
+    sensitive_word_avoidance:
+      enabled: false
+    speech_to_text:
+      enabled: false
+    suggested_questions: []
+    suggested_questions_after_answer:
+      enabled: false
+    text_to_speech:
+      enabled: false
+      language: ''
+      voice: ''
+  graph:
+    edges:
+    - data:
+        isInIteration: false
+        sourceType: start
+        targetType: llm
+      id: edge-start-llm
+      selected: false
+      source: start
+      sourceHandle: source
+      target: llm_analyze
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    - data:
+        isInIteration: false
+        sourceType: llm
+        targetType: end
+      id: edge-llm-end
+      selected: false
+      source: llm_analyze
+      sourceHandle: source
+      target: end
+      targetHandle: target
+      type: custom
+      zIndex: 0
+    nodes:
+    - data:
+        desc: 接收投标文件内容和基本信息
+        outputs:
+        - label: 投标文件内容（合并）
+          type: string
+          variable: bid_files
+        - label: 文件数量
+          type: string
+          variable: file_count
+        - label: 文件名列表
+          type: string
+          variable: file_names
+        title: 开始
+        type: start
+        variables:
+        - label: 投标文件内容（合并）
+          max_length: 100000
+          options: []
+          required: true
+          type: paragraph
+          variable: bid_files
+        - label: 文件数量
+          max_length: 10
+          options: []
+          required: true
+          type: short-text
+          variable: file_count
+        - label: 文件名列表
+          max_length: 500
+          options: []
+          required: true
+          type: short-text
+          variable: file_names
+      height: 191
+      id: start
+      position:
+        x: 80
+        y: 282
+      positionAbsolute:
+        x: 80
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        context:
+          enabled: false
+          variable_selector: []
+        desc: AI分析围标串标风险
+        model:
+          completion_params:
+            temperature: 0.2
+          mode: chat
+          name: deepseek-chat
+          provider: langgenius/deepseek/deepseek
+        prompt_template:
+        - id: system-prompt
+          role: system
+          text: |
+            你是一名专业的招投标合规审查专家，精通《招标投标法》及相关法规。
+            你的任务是分析多份投标文件，判断是否存在围标、串标等违规行为。
+
+            围标串标的法定判断准则如下：
+            1. 投标人之间相互约定，一致抬高或压低投标报价
+            2. 投标人之间相互约定，在招标项目中轮流以高价位或低价位中标
+            3. 投标人之间先进行内部竞价，内定中标人，再参加投标
+            4. 投标人之间其他串通投标行为
+            5. 招标人在开标前开启投标文件并将有关信息泄露给其他投标人
+            6. 招标人直接或间接向投标人泄露标底、评标委员会成员等信息
+            7. 招标人明示或暗示投标人压低或抬高投标报价
+            8. 招标人授意投标人撤换、修改投标文件
+            9. 招标人明示或暗示评标委员会成员倾向性评审
+            10. 招标人与投标人之间其他串通投标行为
+
+            分析维度包括：
+            - 报价异常：各投标方报价是否存在明显规律性（如梯度报价、报价差异过小）
+            - 文本相似度：投标文件内容、格式、措辞是否高度雷同
+            - 投标模式：是否存在明显的陪标、让标迹象
+            - 企业关联：投标方之间是否存在关联关系线索（如联系方式、地址、人员重叠）
+            - 时间规律：文件制作时间、提交时间是否异常一致
+
+            严格按照以下JSON格式输出，不要输出任何JSON以外的内容：
+            {
+              "risk_level": "high/medium/low",
+              "bidders": [
+                {
+                  "name": "投标方名称（从文件中提取，无法识别则用文件名）",
+                  "analysis": "该投标方的具体分析，包括报价情况、文件特征、异常点"
+                }
+              ],
+              "violations": [
+                {
+                  "type": "违规类型（如：报价雷同、文本高度相似、疑似陪标等）",
+                  "description": "违规行为的具体描述",
+                  "evidence": "支撑该判断的具体证据（引用原文片段或数据）",
+                  "suggestion": "处理建议"
+                }
+              ],
+              "conclusion": "综合结论，包括整体风险判断、主要风险点概述、建议处置措施",
+              "similar_segments": [
+                {
+                  "label": "雷同点简述（如：项目经理身份证号完全一致）",
+                  "risk": "high/medium/low",
+                  "pairs": [
+                    {
+                      "file": "文件名",
+                      "text": "该文件中的原文片段（30-100字）"
+                    }
+                  ]
+                }
+              ]
+            }
+
+            similar_segments说明：
+            - 每条代表一处跨文件的雷同或异常点
+            - pairs数组包含涉及该雷同点的所有文件及其原文片段
+            - 原文片段必须是文件中真实存在的内容，禁止编造
+            - 若无雷同则返回空数组
+
+            风险等级判定标准：
+            - high（高风险）：发现2项及以上明确违规迹象，或存在1项极强违规证据
+            - medium（中风险）：发现1项疑似违规迹象，或存在多项轻微异常
+            - low（低风险）：未发现明显违规迹象，各投标文件独立性良好
+
+            重要规则：
+            所有分析结论必须有原文依据，禁止凭空推断。
+            若某项无法判断，在对应字段说明"文件内容不足以判断"，不得编造。
+            violations数组若无违规则返回空数组。
+        - id: user-prompt
+          role: user
+          text: |
+            请分析以下 {{#start.file_count#}} 份投标文件（文件名：{{#start.file_names#}}），判断是否存在围标串标等违规行为。
+
+            投标文件内容如下：
+            {{#start.bid_files#}}
+        title: AI围标串标分析
+        type: llm
+        variables: []
+        vision:
+          configs:
+            detail: high
+          enabled: false
+      height: 98
+      id: llm_analyze
+      position:
+        x: 390
+        y: 282
+      positionAbsolute:
+        x: 390
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+    - data:
+        desc: 输出分析结果JSON
+        outputs:
+        - type: string
+          value_selector:
+          - llm_analyze
+          - text
+          variable: analysis_result
+        title: 结束
+        type: end
+      height: 98
+      id: end
+      position:
+        x: 700
+        y: 282
+      positionAbsolute:
+        x: 700
+        y: 282
+      selected: false
+      sourcePosition: right
+      targetPosition: left
+      type: custom
+      width: 244
+  hash: bid-collusion-workflow-v1

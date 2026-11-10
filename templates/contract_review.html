@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>合同评审</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary: #0a84ff;
+            --accent: #00d4ff;
+            --success: #00e676;
+            --danger: #ff3b5c;
+            --bg-card: rgba(10, 25, 50, 0.45);
+            --border: rgba(0, 180, 255, 0.18);
+            --border-bright: rgba(0, 212, 255, 0.45);
+            --text-primary: #e8f4ff;
+            --text-secondary: #7ab3d4;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .page-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            background:
+                linear-gradient(135deg, rgba(5, 15, 35, 0.6) 0%, rgba(8, 25, 55, 0.55) 100%),
+                url("/static/images/shu-bg.jpg") center/cover no-repeat fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .page-wrapper::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 180, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .page-wrapper::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 180, 255, 0.012) 2px,
+                rgba(0, 180, 255, 0.012) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+        .top-nav {
+            background: linear-gradient(90deg, rgba(5, 15, 35, 0.95) 0%, rgba(0, 40, 90, 0.90) 100%);
+            backdrop-filter: blur(12px);
+            padding: 0 40px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15);
+            border-bottom: 1px solid var(--border-bright);
+            position: relative;
+            z-index: 10;
+            animation: headerGlow 4s ease-in-out infinite;
+        }
+        .top-nav::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15); }
+            50%       { box-shadow: 0 2px 40px rgba(0, 180, 255, 0.28); }
+        }
+        .nav-btn {
+            background: rgba(0, 130, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background: rgba(0, 130, 255, 0.35);
+            border-color: rgba(0, 180, 255, 0.6);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-title {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 36px;
+            letter-spacing: 2px;
+            animation: titleShift 3s ease-in-out infinite;
+        }
+        @keyframes titleShift {
+            0%, 100% { text-shadow: 0 0 20px rgba(0, 180, 255, 0.3); }
+            50%       { text-shadow: 0 0 35px rgba(0, 212, 255, 0.55), 0 0 60px rgba(0, 130, 255, 0.2); }
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent);
+        }
+        .card:hover {
+            border-color: rgba(0, 180, 255, 0.35);
+            box-shadow: 0 8px 35px rgba(0, 130, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 180, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(180deg, var(--accent), var(--primary));
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .upload-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .upload-slot {
+            background: rgba(0, 60, 120, 0.12);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            border-radius: 8px;
+            padding: 18px 20px;
+        }
+        .upload-slot-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        .upload-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .file-name-display {
+            color: var(--text-secondary);
+            font-size: 12px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .file-name-display.loaded { color: var(--success); }
+        .btn-primary {
+            background: linear-gradient(135deg, #0060cc, #0a84ff);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(0, 130, 255, 0.3);
+            white-space: nowrap;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0070e0, #1a94ff);
+            box-shadow: 0 0 22px rgba(0, 150, 255, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #007a40, #00c060);
+            color: #fff;
+            border: 1px solid rgba(0, 230, 118, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(0, 200, 100, 0.25);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #009050, #00d870);
+            box-shadow: 0 0 22px rgba(0, 220, 120, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn-success:disabled {
+            background: linear-gradient(135deg, #1a3a2a, #1a4a30);
+            color: #4a7a5a;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #8b0020, #cc1a3a);
+            color: #fff;
+            border: 1px solid rgba(255, 60, 90, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(200, 30, 60, 0.2);
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #a0002a, #e01a40);
+            box-shadow: 0 0 22px rgba(220, 40, 70, 0.4);
+            transform: translateY(-1px);
+        }
+        .action-buttons { display: flex; gap: 15px; }
+        .result-container { color: var(--text-primary); font-size: 14px; }
+        .result-tip {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .result-block { margin-bottom: 24px; }
+        .block-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 12px;
+            padding-left: 10px;
+            border-left: 3px solid var(--accent);
+            letter-spacing: 0.5px;
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 14px 16px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .result-item.has-problem {
+            background: rgba(120, 30, 50, 0.25);
+            border-left: 3px solid var(--danger);
+        }
+        .result-item.has-problem:hover { background: rgba(150, 30, 50, 0.35); }
+        .result-item.no-problem {
+            background: rgba(0, 80, 40, 0.25);
+            border-left: 3px solid var(--success);
+        }
+        .result-item.no-problem:hover { background: rgba(0, 100, 40, 0.35); }
+        .item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+        .result-detail {
+            font-size: 12px;
+            color: #c8e0ff;
+            line-height: 1.7;
+        }
+        .detail-label { font-weight: 600; color: var(--accent); }
+        .loading-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px 0;
+            gap: 16px;
+        }
+        .loading-ring {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 180, 255, 0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-secondary); font-size: 13px; letter-spacing: 1px; }
+        #particles-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.45;
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 255, 0.5); }
+        @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .btn-primary:hover {
+            background-image: linear-gradient(135deg, #0060cc, #0a84ff, #00d4ff, #0a84ff, #0060cc);
+            background-size: 200% auto;
+            animation: shimmer 1.5s linear infinite;
+        }
+        @media (max-width: 768px) {
+            .upload-grid { grid-template-columns: 1fr; }
+            .top-nav { padding: 0 20px; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    <div class="page-wrapper">
+        <div class="top-nav">
+            <button id="backBtn" class="nav-btn">← 返回记录</button>
+            <button id="saveBtn" class="nav-btn">保存</button>
+        </div>
+
+        <div class="main-container">
+            <h1 class="page-title">合同评审</h1>
+
+            <!-- 上传区域 -->
+            <div class="card reveal">
+                <div class="card-title">上传合同文件</div>
+                <div class="upload-slot" style="max-width:480px">
+                    <div class="upload-slot-label">合同文件（PDF）</div>
+                    <div class="upload-row">
+                        <button class="btn-primary" onclick="document.getElementById('contractFileInput').click()">选择文件</button>
+                        <input type="file" id="contractFileInput" style="display:none" accept=".pdf,.docx,.txt">
+                        <span id="contractFileName" class="file-name-display">未选择文件</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="card reveal" style="padding: 18px 28px;">
+                <div class="action-buttons">
+                    <button id="reviewBtn" class="btn-success">▶ 开始评审</button>
+                    <button id="clearBtn" class="btn-danger">一键清空</button>
+                </div>
+            </div>
+
+            <!-- 评审结果 -->
+            <div class="card reveal">
+                <div class="card-title">评审结果</div>
+                <div id="reviewResult" class="result-container">
+                    <div class="result-tip">上传投标方和中标方合同后，点击「开始评审」，AI 将自动分析合同是否存在问题。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const projectId = new URLSearchParams(window.location.search).get('project_id');
+        const contractFileInput = document.getElementById('contractFileInput');
+        const contractFileName = document.getElementById('contractFileName');
+        const reviewBtn = document.getElementById('reviewBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const reviewResult = document.getElementById('reviewResult');
+
+        let selectedFile = null;
+
+        contractFileInput.addEventListener('change', e => {
+            if (e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                contractFileName.textContent = selectedFile.name;
+                contractFileName.className = 'file-name-display loaded';
+            }
+        });
+
+        reviewBtn.addEventListener('click', async () => {
+            if (!selectedFile) {
+                alert('请先选择合同文件');
+                return;
+            }
+            reviewBtn.disabled = true;
+            reviewBtn.textContent = '评审中...';
+            reviewResult.innerHTML = `
+                <div class="loading-wrap">
+                    <div class="loading-ring"></div>
+                    <div class="loading-text">AI 正在分析合同，请稍候（约30-60秒）...</div>
+                </div>`;
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                if (projectId) formData.append('project_id', projectId);
+
+                const res = await fetch('/review_contract', { method: 'POST', body: formData });
+                const data = await res.json();
+                if (data.success) {
+                    renderResult(data.result);
+                } else {
+                    reviewResult.innerHTML = `<div class="result-tip" style="color:var(--danger)">评审失败：${data.error || '未知错误'}</div>`;
+                }
+            } catch (err) {
+                reviewResult.innerHTML = `<div class="result-tip" style="color:var(--danger)">请求出错：${err.message}</div>`;
+            } finally {
+                reviewBtn.disabled = false;
+                reviewBtn.textContent = '▶ 开始评审';
+            }
+        });
+
+        function renderResult(resultList) {
+            reviewResult.innerHTML = '';
+            if (!Array.isArray(resultList) || resultList.length === 0) {
+                reviewResult.innerHTML = '<div class="result-tip" style="color:var(--success)">未检测到合同问题</div>';
+                return;
+            }
+
+            const groups = {};
+            resultList.forEach(item => {
+                const type = item.type || '综合审查';
+                if (!groups[type]) groups[type] = [];
+                groups[type].push(item);
+            });
+
+            Object.keys(groups).forEach(type => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'result-block';
+                blockDiv.innerHTML = `<div class="block-title">${type}</div>`;
+
+                groups[type].forEach((item, idx) => {
+                    const hasProblem = item.has_problem === true;
+                    const div = document.createElement('div');
+                    div.className = `result-item ${hasProblem ? 'has-problem' : 'no-problem'}`;
+
+                    let html = `<div class="item-title">${idx + 1}. ${item.title || '审查项'}</div>`;
+                    if (hasProblem) {
+                        html += `<div class="result-detail">`;
+                        if (item.problem) html += `<div><span class="detail-label">问题描述：</span>${item.problem}</div>`;
+                        if (item.suggestion) html += `<div style="margin-top:4px"><span class="detail-label">整改建议：</span>${item.suggestion}</div>`;
+                        html += `</div>`;
+                    } else {
+                        html += `<div class="result-detail" style="color:var(--success)">该项无问题</div>`;
+                    }
+
+                    div.innerHTML = html;
+                    blockDiv.appendChild(div);
+                });
+
+                reviewResult.appendChild(blockDiv);
+            });
+        }
+
+        clearBtn.addEventListener('click', () => {
+            if (confirm('确定要清空所有内容吗？')) {
+                selectedFile = null;
+                contractFileInput.value = '';
+                contractFileName.textContent = '未选择文件';
+                contractFileName.className = 'file-name-display';
+                reviewResult.innerHTML = '<div class="result-tip">上传合同文件后，点击「开始评审」，AI 将自动分析合同是否存在问题。</div>';
+            }
+        });
+
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = "{{ url_for('contract_review_record') }}";
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/save_project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: projectId,
+                        contract_name: selectedFile ? selectedFile.name : null,
+                        review_result: reviewResult.innerHTML
+                    })
+                });
+                const data = await res.json();
+                alert(data.success ? '已全部保存' : '保存失败：' + (data.error || '未知错误'));
+            } catch (err) {
+                alert('保存失败，请检查网络连接');
+            }
+        });
+
+        if (projectId) {
+            fetch(`/get_project_data?project_id=${projectId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        if (data.data.contract_name) {
+                            contractFileName.textContent = data.data.contract_name;
+                            contractFileName.className = 'file-name-display loaded';
+                        }
+                        if (data.data.review_result) {
+                            reviewResult.innerHTML = data.data.review_result;
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+    </script>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H, particles = [];
+            function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+            resize();
+            window.addEventListener('resize', resize);
+            for (let i = 0; i < 55; i++) {
+                particles.push({
+                    x: Math.random() * 1920, y: Math.random() * 1080,
+                    r: Math.random() * 1.5 + 0.4,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    a: Math.random() * 0.5 + 0.2
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0,212,255,${p.a})`;
+                    ctx.fill();
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                });
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0,180,255,${0.12 * (1 - dist/120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        (function() {
+            const els = document.querySelectorAll('.reveal');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+            }, { threshold: 0.08 });
+            els.forEach(el => io.observe(el));
+        })();
+
+        window.addEventListener('scroll', () => {
+            const wrapper = document.querySelector('.page-wrapper');
+            if (wrapper) wrapper.style.backgroundPositionY = `calc(center + ${window.scrollY * 0.25}px)`;
+        });
+    </script>
+</body>
+</html>

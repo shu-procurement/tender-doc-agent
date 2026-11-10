@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>招标文件智能生成</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- 引入 Quill 富文本编辑器 -->
+    <link href="{{ url_for('static', filename='css/quill.snow.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='js/quill.min.js') }}"></script>
+    <!-- 引入 marked.js 渲染 Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入 docx.js 生成 Word 文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.min.js"></script>
+    <style>
+        :root {
+            --primary: #0a84ff;
+            --accent: #00d4ff;
+            --success: #00e676;
+            --danger: #ff3b5c;
+            --bg-card: rgba(10, 25, 50, 0.45);
+            --border: rgba(0, 180, 255, 0.18);
+            --border-bright: rgba(0, 212, 255, 0.45);
+            --text-primary: #e8f4ff;
+            --text-secondary: #7ab3d4;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            color: var(--text-primary);
+            min-height: 100vh;
+            background: transparent;
+            line-height: 1.6;
+        }
+        .page-wrapper {
+            min-height: 100vh;
+            background:
+                linear-gradient(135deg, rgba(5, 15, 35, 0.6) 0%, rgba(8, 25, 55, 0.55) 100%),
+                url("/static/images/shu-bg.jpg") center/cover no-repeat fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .page-wrapper::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 180, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .top-nav {
+            background: linear-gradient(90deg, rgba(5, 15, 35, 0.95) 0%, rgba(0, 40, 90, 0.90) 100%);
+            backdrop-filter: blur(12px);
+            padding: 0 40px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15);
+            border-bottom: 1px solid var(--border-bright);
+            position: relative;
+            z-index: 10;
+        }
+        .top-nav::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        .nav-btn {
+            background: rgba(0, 130, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+        }
+        .nav-btn:hover {
+            background: rgba(0, 130, 255, 0.35);
+            border-color: rgba(0, 180, 255, 0.6);
+            transform: translateY(-1px);
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-title {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 36px;
+            text-shadow: 0 0 20px rgba(0, 180, 255, 0.3);
+            letter-spacing: 2px;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent);
+        }
+        .card:hover {
+            border-color: rgba(0, 180, 255, 0.35);
+            box-shadow: 0 8px 35px rgba(0, 130, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 180, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(180deg, var(--accent), var(--primary));
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .upload-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0060cc, #0a84ff);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(0, 130, 255, 0.3);
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0070e0, #1a94ff);
+            box-shadow: 0 0 22px rgba(0, 150, 255, 0.5);
+            transform: translateY(-1px);
+        }
+        .file-name {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+        #editor-container {
+            height: 300px;
+            border: 1px solid rgba(0, 180, 255, 0.25);
+            border-radius: 8px;
+            background: rgba(5, 15, 30, 0.5);
+        }
+        .ql-toolbar {
+            border: 1px solid rgba(0, 180, 255, 0.25) !important;
+            border-bottom: none !important;
+            background: rgba(10, 25, 45, 0.6);
+            border-radius: 8px 8px 0 0;
+        }
+        .ql-container {
+            border: 1px solid rgba(0, 180, 255, 0.25) !important;
+            border-radius: 0 0 8px 8px;
+            font-size: 14px;
+            background: transparent;
+            color: var(--text-primary);
+        }
+        .ql-editor { color: var(--text-primary); }
+        .ql-stroke { stroke: var(--text-secondary) !important; }
+        .ql-fill { fill: var(--text-secondary) !important; }
+        .ql-picker-label { color: var(--text-secondary) !important; }
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #007a40, #00c060);
+            color: #fff;
+            border: 1px solid rgba(0, 230, 118, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(0, 200, 100, 0.25);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #009050, #00d870);
+            box-shadow: 0 0 22px rgba(0, 220, 120, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #8b0020, #cc1a3a);
+            color: #fff;
+            border: 1px solid rgba(255, 60, 90, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(200, 30, 60, 0.2);
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #a0002a, #e01a40);
+            box-shadow: 0 0 22px rgba(220, 40, 70, 0.4);
+            transform: translateY(-1px);
+        }
+        #fileUpload { display: none; }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        .info-table th, .info-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 180, 255, 0.1);
+            font-size: 13px;
+        }
+        .info-table th {
+            background: rgba(0, 80, 160, 0.2);
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 0.5px;
+        }
+        .info-table tr:last-child td { border-bottom: none; }
+        .info-table tr:hover td { background: rgba(0, 100, 200, 0.08); }
+        .input-field {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(0, 60, 120, 0.2);
+            border: 1px solid rgba(0, 180, 255, 0.2);
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--text-primary);
+            transition: all 0.25s ease;
+        }
+        .input-field:focus {
+            border-color: rgba(0, 212, 255, 0.5);
+            box-shadow: 0 0 0 2px rgba(0, 180, 255, 0.1);
+            outline: none;
+            background: rgba(0, 80, 160, 0.25);
+        }
+        .input-field::placeholder { color: rgba(122, 179, 212, 0.5); }
+        .check-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            background: rgba(0, 60, 120, 0.2);
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+        .check-box.checked {
+            background: linear-gradient(135deg, #007a40, #00c060);
+            border-color: rgba(0, 230, 118, 0.5);
+        }
+        .add-btn {
+            width: 24px;
+            height: 24px;
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent);
+            transition: all 0.25s ease;
+            background: rgba(0, 60, 120, 0.2);
+            font-size: 14px;
+        }
+        .add-btn:hover {
+            background: rgba(0, 130, 255, 0.3);
+            border-color: var(--accent);
+        }
+        .category-select {
+            padding: 9px 16px;
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(0, 60, 120, 0.2);
+            color: var(--text-primary);
+            cursor: pointer;
+            display: inline-block;
+            margin-bottom: 16px;
+            transition: all 0.25s ease;
+            font-size: 13px;
+        }
+        .category-select:hover {
+            border-color: var(--accent);
+            background: rgba(0, 80, 160, 0.3);
+        }
+        .category-dropdown {
+            display: none;
+            position: absolute;
+            background: rgba(5, 20, 50, 0.95);
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            border-radius: 8px;
+            min-width: 160px;
+            z-index: 10;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+        }
+        .category-dropdown div {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+        .category-dropdown div:hover {
+            background: rgba(0, 130, 255, 0.2);
+            color: #fff;
+        }
+        .alert-box {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 24px;
+            background: rgba(5, 20, 50, 0.95);
+            border: 1px solid rgba(255, 60, 90, 0.5);
+            border-radius: 8px;
+            color: var(--danger);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            font-size: 14px;
+        }
+        .alert-box i { margin-right: 8px; }
+        .result-area {
+            margin: 16px 0;
+            padding: 20px;
+            background: rgba(0, 40, 80, 0.2);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            border-radius: 8px;
+            min-height: 200px;
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.8;
+        }
+        /* Markdown 渲染样式 */
+        .result-area h1, .result-area h2, .result-area h3 {
+            color: var(--accent);
+            margin: 16px 0 8px;
+            font-weight: 600;
+        }
+        .result-area h1 { font-size: 18px; border-bottom: 1px solid rgba(0,180,255,0.2); padding-bottom: 6px; }
+        .result-area h2 { font-size: 16px; }
+        .result-area h3 { font-size: 14px; }
+        .result-area p { margin: 6px 0; }
+        .result-area ul, .result-area ol { padding-left: 20px; margin: 6px 0; }
+        .result-area li { margin: 3px 0; }
+        .result-area strong { color: #fff; }
+        .result-area table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .result-area th, .result-area td { border: 1px solid rgba(0,180,255,0.2); padding: 8px 12px; font-size: 12px; }
+        .result-area th { background: rgba(0,80,160,0.2); color: var(--accent); }
+        .action-btn {
+            padding: 9px 20px;
+            border: 1px solid rgba(0, 180, 255, 0.3);
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+            background: rgba(0, 80, 160, 0.2);
+            color: var(--text-primary);
+            transition: all 0.25s ease;
+            font-size: 13px;
+        }
+        .action-btn:hover {
+            background: rgba(0, 100, 200, 0.3);
+            border-color: var(--accent);
+        }
+        .generating-text {
+            color: var(--accent);
+            margin-left: 8px;
+        }
+        .loading {
+            display: none;
+            color: var(--accent);
+            margin-left: 10px;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 255, 0.5); }
+
+        /* ===== Particles canvas ===== */
+        #particles-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.45;
+        }
+
+        /* ===== Scroll reveal ===== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* ===== Glow pulse on header ===== */
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15); }
+            50%       { box-shadow: 0 2px 40px rgba(0, 180, 255, 0.28); }
+        }
+        .top-nav { animation: headerGlow 4s ease-in-out infinite; }
+
+        /* ===== Scan line overlay ===== */
+        .page-wrapper::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 180, 255, 0.012) 2px,
+                rgba(0, 180, 255, 0.012) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== Shimmer on btn-primary hover ===== */
+        @keyframes shimmer {
+            0%   { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+        .btn-primary:hover {
+            background-image: linear-gradient(135deg, #0060cc, #0a84ff, #00d4ff, #0a84ff, #0060cc);
+            background-size: 200% auto;
+            animation: shimmer 1.5s linear infinite;
+        }
+
+        /* ===== Page title gradient animation ===== */
+        @keyframes titleShift {
+            0%, 100% { text-shadow: 0 0 20px rgba(0, 180, 255, 0.3); }
+            50%       { text-shadow: 0 0 35px rgba(0, 212, 255, 0.55), 0 0 60px rgba(0, 130, 255, 0.2); }
+        }
+        .page-title { animation: titleShift 3s ease-in-out infinite; }
+    </style>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    <div class="page-wrapper">
+        <!-- 顶部导航栏 -->
+        <div class="top-nav">
+            <button id="backBtn" class="nav-btn">返回记录</button>
+            <button id="saveBtn" class="nav-btn">保存</button>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-container">
+            <h1 class="page-title">招标文件智能生成</h1>
+
+            <!-- 文件上传卡片 -->
+            <div class="card reveal">
+                <div class="card-title">上传招标文件</div>
+                <div class="upload-area">
+                    <button id="uploadBtn" class="btn-primary">选择文件</button>
+                    <input type="file" id="fileUpload" accept=".pdf,.doc,.docx,.txt">
+                    <span id="fileNameDisplay" class="file-name">未选择文件</span>
+                </div>
+            </div>
+
+            <!-- 文本编辑卡片 -->
+            <div class="card reveal">
+                <div class="card-title">查看招标文件文本</div>
+                <div id="editor-container"></div>
+            </div>
+
+            <!-- 操作按钮卡片 -->
+            <div class="card reveal">
+                <div class="action-buttons">
+                    <button id="recognizeBtn" class="btn-success">识别信息</button>
+                    <button id="clearBtn" class="btn-danger">清空内容</button>
+                </div>
+            </div>
+
+            <!-- 提示框 -->
+            <div class="alert-box" id="alertBox">
+                <i>⚠</i><span id="alertMsg">信息未输入完整</span>
+            </div>
+
+            <!-- 分类选择 -->
+            <div style="position: relative;">
+                <div class="category-select" id="tenderCategory">
+                    货物类招标 <span>▼</span>
+                    <div class="category-dropdown" id="categoryDropdown">
+                        <div onclick="switchCategory('货物类招标')">货物类招标</div>
+                        <div onclick="switchCategory('服务类招标')">服务类招标</div>
+                        <div onclick="switchCategory('工程类招标')">工程类招标</div>
+                    </div>
+                </div>
+            </div>
+             <!-- 1. 基础核心信息 -->
+            <div class="card reveal">
+                <div class="card-title">基础核心信息</div>
+                <table class="info-table" data-category="基础核心信息">
+                    <thead>
+                        <tr>
+                            <th>基础核心信息</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-parent="基础核心信息" data-field="项目名称">
+                            <td>项目名称</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="招标编号">
+                            <td>招标编号</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="采购方式">
+                            <td>采购方式</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="项目所在地区">
+                            <td>项目所在地区</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="资金来源">
+                            <td>资金来源</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="预算金额">
+                            <td>预算金额</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="项目实施地点">
+                            <td>项目实施地点</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="采购需求概述">
+                            <td>采购需求概述</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="合同履约期限">
+                            <td>合同履约期限</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr data-parent="基础核心信息" data-field="是否接受联合体投标">
+                            <td>是否接受联合体投标</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '基础核心信息')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="基础核心信息">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '基础核心信息')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+
+
+
+
+            <!-- 2. 采购标的详细信息 -->
+            <div class="card reveal">
+                <div class="card-title">采购标的详细信息</div>
+                <table class="info-table" id="tenderDetailTable" data-category="采购标的详细信息">
+                    <thead>
+                        <tr>
+                            <th>采购标的详细信息</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tenderDetailBody">
+                        <tr data-parent="采购标的详细信息" data-field="标的名称">
+                            <td>标的名称</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                        </tr>
+                        <tr data-parent="采购标的详细信息" data-field="采购数量">
+                            <td>采购数量</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                        </tr>
+                        <tr data-parent="采购标的详细信息" data-field="简要技术规格">
+                            <td>简要技术规格</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                        </tr>
+                        <tr data-parent="采购标的详细信息" data-field="是否允许进口产品">
+                            <td>是否允许进口产品</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                        </tr>
+                        <tr data-parent="采购标的详细信息" data-field="产品交货要求">
+                            <td>产品交货要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="采购标的详细信息">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '采购标的详细信息')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 3. 投标人资格要求 -->
+            <div class="card reveal">
+                <div class="card-title">投标人资格要求</div>
+                <table class="info-table" data-category="投标人资格要求">
+                    <thead>
+                        <tr>
+                            <th>投标人资格要求</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-parent="投标人资格要求" data-field="基础资格">
+                            <td>基础资格</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="专项资质要求">
+                            <td>专项资质要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="信用记录要求">
+                            <td>信用记录要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="关联关系限制">
+                            <td>关联关系限制</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="分支机构要求">
+                            <td>分支机构要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="行贿犯罪记录">
+                            <td>行贿犯罪记录</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="人员关联限制">
+                            <td>人员关联限制</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr data-parent="投标人资格要求" data-field="特定行业要求">
+                            <td>特定行业要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标人资格要求')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="投标人资格要求">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '投标人资格要求')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 4. 文件获取信息 -->
+            <div class="card reveal">
+                <div class="card-title">文件获取信息</div>
+                <table class="info-table" data-category="文件获取信息">
+                    <thead>
+                        <tr>
+                            <th>文件获取信息</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-parent="文件获取信息" data-field="获取时间">
+                            <td>获取时间</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></td>
+                        </tr>
+                        <tr data-parent="文件获取信息" data-field="获取方式">
+                            <td>获取方式</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></td>
+                        </tr>
+                        <tr data-parent="文件获取信息" data-field="招标文件售价">
+                            <td>招标文件售价</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></td>
+                        </tr>
+                        <tr data-parent="文件获取信息" data-field="报名资料清单">
+                            <td>报名资料清单</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></td>
+                        </tr>
+                        <tr data-parent="文件获取信息" data-field="发票开具">
+                            <td>发票开具</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></td>
+                        </tr>
+                        <tr data-parent="文件获取信息" data-field="其他说明">
+                            <td>其他说明</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '文件获取信息')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="文件获取信息">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '文件获取信息')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 5. 投标文件递交信息 -->
+            <div class="card reveal">
+                <div class="card-title">投标文件递交信息</div>
+                <table class="info-table" data-category="投标文件递交信息">
+                    <thead>
+                        <tr>
+                            <th>投标文件递交信息</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '投标文件递交信息')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-parent="投标文件递交信息" data-field="投标截止时间">
+                            <td>投标截止时间</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标文件递交信息')"></div></td>
+                        </tr>
+                        <tr data-parent="投标文件递交信息" data-field="递交方式">
+                            <td>递交方式</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标文件递交信息')"></div></td>
+                        </tr>
+                        <tr data-parent="投标文件递交信息" data-field="投标文件要求">
+                            <td>投标文件要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标文件递交信息')"></div></td>
+                        </tr>
+                        <tr data-parent="投标文件递交信息" data-field="开标地点">
+                            <td>开标地点</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标文件递交信息')"></div></td>
+                        </tr>
+                        <tr data-parent="投标文件递交信息" data-field="放弃投标通知">
+                            <td>放弃投标通知</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '投标文件递交信息')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="投标文件递交信息">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '投标文件递交信息')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 6. 联系方式 -->
+            <div class="card reveal">
+                <div class="card-title">联系方式</div>
+                <table class="info-table" data-category="联系方式">
+                    <thead>
+                        <tr>
+                            <th>联系方式</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-parent="联系方式" data-field="招标人地址">
+                            <td>招标人地址</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr data-parent="联系方式" data-field="招标人联系人">
+                            <td>招标人联系人</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr data-parent="联系方式" data-field="招标人联系电话">
+                            <td>招标人联系电话</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr data-parent="联系方式" data-field="招标人电子邮件">
+                            <td>招标人电子邮件</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr data-parent="联系方式" data-field="代理机构名称">
+                            <td>代理机构名称</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr data-parent="联系方式" data-field="代理机构地址">
+                            <td>代理机构地址</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr data-parent="联系方式" data-field="代理机构联系人">
+                            <td>代理机构联系人</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '联系方式')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="联系方式">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '联系方式')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 7. 其他法定必填信息 -->
+            <div class="card reveal">
+                <div class="card-title">其他法定必填信息</div>
+                <table class="info-table" data-category="其他法定必填信息">
+                    <thead>
+                        <tr>
+                            <th>其他法定必填信息</th>
+                            <th>填写内容</th>
+                            <th><div class="check-box" onclick="toggleCheck(this, '其他法定必填信息')"></div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-parent="其他法定必填信息" data-field="公告发布媒介">
+                            <td>公告发布媒介</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '其他法定必填信息')"></div></td>
+                        </tr>
+                        <tr data-parent="其他法定必填信息" data-field="公告期限">
+                            <td>公告期限</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '其他法定必填信息')"></div></td>
+                        </tr>
+                        <tr data-parent="其他法定必填信息" data-field="监督部门">
+                            <td>监督部门</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '其他法定必填信息')"></div></td>
+                        </tr>
+                        <tr data-parent="其他法定必填信息" data-field="政策落实要求">
+                            <td>政策落实要求</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="check-box" onclick="toggleCheck(this, '其他法定必填信息')"></div></td>
+                        </tr>
+                        <tr class="other-row" data-parent="其他法定必填信息">
+                            <td>其他信息</td>
+                            <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                            <td><div class="add-btn" onclick="addOtherRow(this, '其他法定必填信息')">+</div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 生成按钮卡片 -->
+            <div class="card reveal">
+                <div class="action-buttons">
+                    <button class="btn-success" onclick="submitForm()" id="generateBtn">
+                        生成招标文件
+                        <span class="generating-text" id="generatingText" style="display: none;">生成中...</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 结果显示区域 -->
+            <div class="card reveal">
+                <div class="card-title">生成结果</div>
+                <div class="result-area" id="resultArea">
+                    招标文件将显示在这里...
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div id="actionBtns" style="display: none; margin-top: 20px;">
+                <button class="action-btn" onclick="regenerate()">重新生成</button>
+                <button class="action-btn" onclick="saveFile()">保存文件</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileUpload = document.getElementById('fileUpload');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileNameDisplay = document.getElementById('fileNameDisplay');
+            const recognizeBtn = document.getElementById('recognizeBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const backBtn = document.getElementById('backBtn');
+            const saveBtn = document.getElementById('saveBtn');
+
+            let originalText = '';
+            let textWithLineNumbers = '';
+            const projectId = new URLSearchParams(window.location.search).get('project_id') || 'temp_' + Date.now();
+            let quill = new Quill('#editor-container', {
+                theme: 'snow',
+                modules: {
+                    toolbar: [
+                        [{ 'header': [1, 2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'strike'],
+                        [{ 'color': [] }, { 'background': [] }],
+                        [{ 'align': [] }],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        ['link', 'code-block'],
+                        ['clean']
+                    ]
+                },
+                placeholder: '上传文件后自动显示内容，或直接粘贴招标文件文本...'
+            });
+
+            const lineNumberRule = {
+                processText: function(rawText) {
+                    const normalized = rawText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                    const lines = normalized.split('\n');
+                    let withLineNum = '';
+                    lines.forEach((line, idx) => {
+                        withLineNum += `【行${idx+1}】${line}\n`;
+                    });
+                    const pureText = lines.join('\n');
+                    return {
+                        pureText: pureText,
+                        textWithLine: withLineNum
+                    };
+                },
+                getLinePosition: function(pureText, lineNum) {
+                    const lines = pureText.split('\n');
+                    if (isNaN(lineNum) || lineNum < 1 || lineNum > lines.length) return null;
+                    let startPos = 0;
+                    for (let i = 0; i < lineNum - 1; i++) {
+                        startPos += lines[i].length + 1;
+                    }
+                    const endPos = startPos + lines[lineNum - 1].length;
+                    return {
+                        start: startPos,
+                        end: endPos,
+                        lineContent: lines[lineNum - 1]
+                    };
+                }
+            };
+
+            // 绑定文件上传按钮
+            uploadBtn.addEventListener('click', function() {
+                fileUpload.click();
+            });
+
+            // 文件选择后处理
+            fileUpload.addEventListener('change', async function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    fileNameDisplay.textContent = `已选择：${file.name}`;
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'same-origin'
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            originalText = data.content;
+                            textWithLineNumbers = data.contentWithLine;
+                            quill.setText(originalText); // 保留分行格式
+                        } else {
+                            alert(`文件处理出错：${data.error}`);
+                        }
+                    } catch (err) {
+                        alert(`文件处理出错：${err.message}`);
+                        console.error('文件处理错误：', err);
+                    }
+                } else {
+                    fileNameDisplay.textContent = '未选择文件';
+                    quill.setText('');
+                    originalText = '';
+                    textWithLineNumbers = '';
+                }
+            });
+
+            // 识别信息按钮逻辑
+            recognizeBtn.addEventListener('click', async function() {
+                const currentText = quill.getText().trim();
+                if (currentText) {
+                    const processed = lineNumberRule.processText(currentText);
+                    originalText = processed.pureText;
+                    textWithLineNumbers = processed.textWithLine;
+                } else {
+                    alert('请先上传或粘贴招标文件文本');
+                    return;
+                }
+
+                recognizeBtn.disabled = true;
+                recognizeBtn.innerHTML = '<span class="loading">识别中...</span>';
+
+                try {
+                    const formData = new FormData();
+                    if (fileUpload.files[0]) {
+                        formData.append('file', fileUpload.files[0]);
+                    }
+                    if (originalText) {
+                        formData.append('text', originalText);
+                    }
+
+                    const response = await fetch('/recognize_tender_info', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP请求失败：${response.status} ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+                    if (data.success) {
+                        fillFormData(data.data);
+                        showAlert('信息识别成功，已自动填充到表格！', 'success');
+                    } else {
+                        alert(`识别失败：${data.error || '未知错误'}`);
+                    }
+                } catch (err) {
+                    alert(`请求出错：${err.message}`);
+                    console.error('识别请求错误：', err);
+                } finally {
+                    recognizeBtn.disabled = false;
+                    recognizeBtn.innerHTML = '识别信息';
+                }
+            });
+
+            // 清空按钮逻辑
+            clearBtn.addEventListener('click', function() {
+                if (confirm('确定要清空所有内容吗？')) {
+                    fileUpload.value = '';
+                    fileNameDisplay.textContent = '未选择文件';
+                    quill.setText('');
+                    originalText = '';
+                    textWithLineNumbers = '';
+
+                    // 清空表格内容
+                    document.querySelectorAll('.input-field').forEach(input => {
+                        input.value = '';
+                    });
+                    document.querySelectorAll('.check-box').forEach(box => {
+                        box.classList.remove('checked');
+                        box.innerHTML = '';
+                    });
+                }
+            });
+
+            // 返回按钮逻辑
+            backBtn.addEventListener('click', function() {
+                window.location.href = "{{ url_for('create_record', module_name='tender_generate') }}";
+            });
+
+            // 保存按钮逻辑
+            saveBtn.addEventListener('click', async function() {
+                const currentText = quill.getText().trim();
+                const saveData = {
+                    project_id: projectId,
+                    content: currentText,
+                    form_data: {},
+                    generated_content: document.getElementById('resultArea').innerHTML,
+                    uploaded_file_name: fileNameDisplay.textContent.replace('已选择：', '')
+                };
+
+                // 收集表格数据
+                document.querySelectorAll('.info-table').forEach(table => {
+                    const category = table.dataset.category;
+                    saveData.form_data[category] = {};
+
+                    table.querySelectorAll('tbody tr').forEach(row => {
+                        const checkBox = row.querySelector('.check-box');
+                        const inputField = row.querySelector('.input-field');
+
+                        if (checkBox && checkBox.classList.contains('checked')) {
+                            const key = row.querySelector('td:first-child').textContent.trim();
+                            const value = inputField.value.trim();
+                            saveData.form_data[category][key] = value;
+                        }
+                    });
+                });
+
+                try {
+                    const response = await fetch('/save_project', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(saveData)
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        alert('已全部保存');
+                    } else {
+                        alert('保存失败：' + (data.error || '未知错误'));
+                    }
+                } catch (err) {
+                    console.error('保存失败：', err);
+                    alert('保存失败，请检查网络连接');
+                }
+            });
+
+            // 加载历史项目数据
+            if (projectId) {
+                fetch(`/get_project_data?project_id=${projectId}`)
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success && result.data) {
+                        const savedData = result.data;
+                        if (savedData.content) {
+                            quill.setText(savedData.content);
+                            const processed = lineNumberRule.processText(savedData.content);
+                            originalText = processed.pureText;
+                            textWithLineNumbers = processed.textWithLine;
+                        }
+                        if (savedData.form_data) {
+                            fillFormData(savedData.form_data);
+                        }
+                        if (savedData.generated_content) {
+                            document.getElementById('resultArea').innerHTML = savedData.generated_content;
+                            document.getElementById('actionBtns').style.display = 'block';
+                        }
+                        if (savedData.uploaded_file_name) {
+                            fileNameDisplay.textContent = `已选择：${savedData.uploaded_file_name}`;
+                        }
+                    }
+                })
+                .catch(err => {
+                    console.error('加载项目数据失败：', err);
+                });
+            }
+
+            // 分类下拉框切换
+            document.getElementById('tenderCategory').addEventListener('click', function() {
+                const dropdown = document.getElementById('categoryDropdown');
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            });
+
+            // 点击其他区域关闭下拉框
+            document.addEventListener('click', function(e) {
+                const category = document.getElementById('tenderCategory');
+                const dropdown = document.getElementById('categoryDropdown');
+                if (!category.contains(e.target)) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        });
+
+        // 勾选/取消勾选
+        function toggleCheck(checkbox, category) {
+            checkbox.classList.toggle('checked');
+            checkbox.innerHTML = checkbox.classList.contains('checked') ? '✓' : '';
+
+            // 如果是表头复选框，全选/全不选
+            if (checkbox.parentElement.tagName === 'TH') {
+                const table = document.querySelector(`.info-table[data-category="${category}"]`);
+                const allCheckboxes = table.querySelectorAll('tbody .check-box');
+                allCheckboxes.forEach(cb => {
+                    cb.classList.toggle('checked', checkbox.classList.contains('checked'));
+                    cb.innerHTML = checkbox.classList.contains('checked') ? '✓' : '';
+                });
+            }
+        }
+
+        // 添加自定义行
+        function addOtherRow(btn, category) {
+            const table = document.querySelector(`.info-table[data-category="${category}"]`);
+            const tbody = table.querySelector('tbody');
+            const lastRow = tbody.querySelector('.other-row');
+
+            const newRow = document.createElement('tr');
+            newRow.className = 'other-row';
+            newRow.dataset.parent = category;
+            newRow.innerHTML = `
+                <td>其他信息</td>
+                <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                <td><div class="check-box" onclick="toggleCheck(this, '${category}')"></div></td>
+            `;
+
+            tbody.insertBefore(newRow, lastRow);
+        }
+
+        // 切换招标分类
+        function switchCategory(type) {
+            const body = document.getElementById('tenderDetailBody');
+            const categoryText = document.getElementById('tenderCategory').firstChild;
+            categoryText.textContent = type + ' ';
+            body.innerHTML = '';
+
+            if (type === '货物类招标') {
+                body.innerHTML = `
+                    <tr data-parent="采购标的详细信息" data-field="标的名称">
+                        <td>标的名称</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="采购数量">
+                        <td>采购数量</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="简要技术规格">
+                        <td>简要技术规格</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="是否允许进口产品">
+                        <td>是否允许进口产品</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="产品交货要求">
+                        <td>产品交货要求</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr class="other-row" data-parent="采购标的详细信息">
+                        <td>其他信息</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="add-btn" onclick="addOtherRow(this, '采购标的详细信息')">+</div></td>
+                    </tr>
+                `;
+            } else if (type === '服务类招标') {
+                body.innerHTML = `
+                    <tr data-parent="采购标的详细信息" data-field="服务内容">
+                        <td>服务内容</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="服务期限">
+                        <td>服务期限</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="服务标准">
+                        <td>服务标准</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="服务地点">
+                        <td>服务地点</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr class="other-row" data-parent="采购标的详细信息">
+                        <td>其他信息</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="add-btn" onclick="addOtherRow(this, '采购标的详细信息')">+</div></td>
+                    </tr>
+                `;
+            } else if (type === '工程类招标') {
+                body.innerHTML = `
+                    <tr data-parent="采购标的详细信息" data-field="工程名称">
+                        <td>工程名称</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="工程地点">
+                        <td>工程地点</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="工程规模">
+                        <td>工程规模</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="工期要求">
+                        <td>工期要求</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr data-parent="采购标的详细信息" data-field="质量要求">
+                        <td>质量要求</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="check-box" onclick="toggleCheck(this, '采购标的详细信息')"></div></td>
+                    </tr>
+                    <tr class="other-row" data-parent="采购标的详细信息">
+                        <td>其他信息</td>
+                        <td><input type="text" class="input-field" placeholder="请填写内容"></td>
+                        <td><div class="add-btn" onclick="addOtherRow(this, '采购标的详细信息')">+</div></td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 填充表单数据
+        function fillFormData(data) {
+            for (const category in data) {
+                const fields = data[category];
+                for (const fieldName in fields) {
+                    const row = document.querySelector(`tr[data-field="${fieldName}"]`);
+                    if (row) {
+                        const input = row.querySelector('.input-field');
+                        const checkBox = row.querySelector('.check-box');
+
+                        input.value = fields[fieldName];
+                        checkBox.classList.add('checked');
+                        checkBox.innerHTML = '✓';
+
+                        const parentTable = document.querySelector(`.info-table[data-category="${category}"]`);
+                        const parentCheck = parentTable.querySelector('thead .check-box');
+                        parentCheck.classList.add('checked');
+                        parentCheck.innerHTML = '✓';
+                    }
+                }
+            }
+        }
+
+        // 显示提示框
+        function showAlert(msg, type = 'error') {
+            const alertBox = document.getElementById('alertBox');
+            const alertMsg = document.getElementById('alertMsg');
+
+            alertMsg.textContent = msg;
+            if (type === 'success') {
+                alertBox.style.borderColor = '#28a745';
+                alertBox.style.color = '#28a745';
+                alertBox.querySelector('i').textContent = '✓';
+            } else {
+                alertBox.style.borderColor = '#dc3545';
+                alertBox.style.color = '#dc3545';
+                alertBox.querySelector('i').textContent = '⚠';
+            }
+
+            alertBox.style.display = 'block';
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 3000);
+        }
+
+        // 提交生成表单
+        async function submitForm() {
+            const generateBtn = document.getElementById('generateBtn');
+            const generatingText = document.getElementById('generatingText');
+
+            // 收集表单数据
+            const formData = {};
+            let hasData = false;
+
+            document.querySelectorAll('.info-table').forEach(table => {
+                const category = table.dataset.category;
+                formData[category] = {};
+
+                table.querySelectorAll('tbody tr').forEach(row => {
+                    const checkBox = row.querySelector('.check-box');
+                    const inputField = row.querySelector('.input-field');
+
+                    if (checkBox && checkBox.classList.contains('checked')) {
+                        const key = row.querySelector('td:first-child').textContent.trim();
+                        const value = inputField.value.trim();
+                        if (value) {
+                            formData[category][key] = value;
+                            hasData = true;
+                        }
+                    }
+                });
+            });
+
+            if (!hasData) {
+                showAlert('请至少填写一项信息并勾选！');
+                return;
+            }
+
+            // 显示生成中状态
+            generateBtn.disabled = true;
+            generatingText.style.display = 'inline';
+
+            try {
+                const response = await fetch('/generate_tender', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        form_data: formData,
+                        project_id: new URLSearchParams(window.location.search).get('project_id') || 'temp_' + Date.now()
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // 用 marked 渲染 Markdown 格式
+                    const rendered = (typeof marked !== 'undefined')
+                        ? marked.parse(data.data)
+                        : data.data.replace(/\n/g, '<br>');
+                    document.getElementById('resultArea').innerHTML = rendered;
+                    document.getElementById('actionBtns').style.display = 'block';
+                    showAlert('招标文件生成成功！', 'success');
+
+                    // 自动保存生成结果
+                    const saveBtn = document.getElementById('saveBtn');
+                    if (saveBtn) saveBtn.click();
+                } else {
+                    showAlert(`生成失败：${data.error || '未知错误'}`);
+                }
+            } catch (err) {
+                showAlert(`请求出错：${err.message}`);
+                console.error('生成请求错误：', err);
+            } finally {
+                generateBtn.disabled = false;
+                generatingText.style.display = 'none';
+            }
+        }
+
+        // 重新生成
+        function regenerate() {
+            document.getElementById('resultArea').innerHTML = '招标文件将显示在这里...';
+            document.getElementById('actionBtns').style.display = 'none';
+            submitForm();
+        }
+
+        // 保存文件（Word格式）
+        async function saveFile() {
+            const resultArea = document.getElementById('resultArea');
+            const content = resultArea.innerText;
+            const ts = new Date().toISOString().slice(0, 10);
+
+            try {
+                const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+
+                const lines = content.split('\n');
+                const children = lines.map(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return new Paragraph({ text: '' });
+                    // 一、二、三级标题识别
+                    if (/^第[一二三四五六七八九十]+[章节条]/.test(trimmed) || /^[一二三四五六七八九十]+、/.test(trimmed)) {
+                        return new Paragraph({
+                            text: trimmed,
+                            heading: HeadingLevel.HEADING_2,
+                        });
+                    }
+                    if (/^（[一二三四五六七八九十]+）/.test(trimmed) || /^\d+\.\d+/.test(trimmed)) {
+                        return new Paragraph({
+                            text: trimmed,
+                            heading: HeadingLevel.HEADING_3,
+                        });
+                    }
+                    return new Paragraph({
+                        children: [new TextRun({ text: trimmed, size: 24, font: '宋体' })],
+                    });
+                });
+
+                const doc = new Document({
+                    sections: [{
+                        properties: {},
+                        children: children,
+                    }],
+                });
+
+                const blob = await Packer.toBlob(doc);
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `招标文件_${ts}.docx`;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                showAlert('文件保存成功！', 'success');
+            } catch (e) {
+                console.error('Word生成失败:', e);
+                showAlert('Word生成失败，请重试', 'error');
+            }
+        }
+    </script>
+
+    <!-- Particles + Scroll Reveal + Parallax -->
+    <script>
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H, particles = [];
+            function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+            resize();
+            window.addEventListener('resize', resize);
+            for (let i = 0; i < 55; i++) {
+                particles.push({
+                    x: Math.random() * 1920, y: Math.random() * 1080,
+                    r: Math.random() * 1.5 + 0.4,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    a: Math.random() * 0.5 + 0.2
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0,212,255,${p.a})`;
+                    ctx.fill();
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                });
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0,180,255,${0.12 * (1 - dist/120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        (function() {
+            const els = document.querySelectorAll('.reveal');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+            }, { threshold: 0.08 });
+            els.forEach(el => io.observe(el));
+        })();
+
+        window.addEventListener('scroll', () => {
+            const y = window.scrollY;
+            const wrapper = document.querySelector('.page-wrapper');
+            if (wrapper) wrapper.style.backgroundPositionY = `calc(center + ${y * 0.25}px)`;
+        });
+    </script>
+</body>
+</html>

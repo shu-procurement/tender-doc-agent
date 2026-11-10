@@ -1,0 +1,848 @@
+/* 全局样式（原有+新增） */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Microsoft YaHei", sans-serif;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+* {
+    box-sizing: inherit;
+}
+
+/* 左侧功能栏（原有样式，保留） */
+.sidebar {
+    width: 200px;
+    background-color: #e6f2ff;
+    border-right: 1px solid #b3d9ff;
+    padding: 20px 0;
+}
+.sidebar h3 {
+    margin: 0 20px 15px;
+    color: #0066cc;
+    border-bottom: 1px solid #b3d9ff;
+    padding-bottom: 5px;
+}
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.sidebar li {
+    padding: 10px 20px;
+}
+.sidebar li a {
+    text-decoration: none;
+    color: #004080;
+}
+.sidebar li:hover {
+    background-color: #b3d9ff;
+}
+
+/* 主内容区（原有样式，保留） */
+.main-content {
+    flex: 1;
+    padding: 20px;
+    background-color: #fff;
+}
+.main-content h2 {
+    color: #0066cc;
+    margin-top: 0;
+}
+
+/* 合规审查页面的上传区域（原有样式，保留） */
+.upload-area {
+    border: 2px dashed #b3d9ff;
+    padding: 30px;
+    text-align: center;
+    margin: 20px 0;
+    cursor: pointer;
+}
+.upload-area:hover {
+    background-color: #f2f9ff;
+}
+#fileInput {
+    display: none; /* 隐藏原生文件选择框 */
+}
+#uploadBtn {
+    background-color: #0066cc;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+#uploadBtn:disabled {
+    background-color: #b3d9ff;
+    cursor: not-allowed;
+}
+#resultArea {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #b3d9ff;
+    min-height: 100px;
+}
+
+/* 审核页面容器（原有样式，保留） */
+.container {
+    width: 75%;
+    margin-left: 25%;
+    padding: 20px;
+    font-family: "Microsoft YaHei", sans-serif;
+}
+
+/* 统一所有按钮样式（原有样式，保留） */
+.btn-primary, .btn-success, .btn-danger {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #fff;
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* 主按钮样式（原有样式，保留） */
+.btn-primary {
+    background-color: #2196f3;
+}
+.btn-primary:hover {
+    background-color: #1976d2;
+}
+
+/* 成功/操作按钮样式（原有样式，保留） */
+.btn-success {
+    background-color: #4caf50;
+    margin-top: 20px;
+}
+.btn-success:hover {
+    background-color: #388e3c;
+}
+
+/* 危险/清空按钮样式（原有样式，保留） */
+.btn-danger {
+    background-color: #f44336;
+}
+.btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+/* 所有按钮禁用状态统一（原有样式，保留） */
+.btn-primary:disabled, .btn-success:disabled, .btn-danger:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+    opacity: 0.8;
+    transition: none;
+}
+
+/* 文件上传区域（原有样式，保留） */
+.upload-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #fafafa;
+    border-radius: 6px;
+}
+.file-name { margin-left: 15px; color: #666; font-size: 14px; }
+
+/* 文本输入区域（原有样式，保留） */
+.text-input-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #fafafa;
+    border-radius: 6px;
+}
+#tenderTextarea {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    font-size: 14px;
+    line-height: 1.6;
+    box-sizing: border-box;
+}
+
+/* 审核结果区域（原有样式，保留） */
+.review-result-section {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #fafafa;
+    border-radius: 6px;
+}
+.result-container { margin-top: 15px; font-size: 14px; line-height: 1.8; }
+.result-tip { color: #999; font-style: italic; }
+.result-item {
+    margin: 12px 0;
+    padding: 12px;
+    border-left: 3px solid #ff5722;
+    background-color: #fff;
+    border-radius: 0 4px 4px 0;
+}
+.problem-type { font-weight: bold; color: #ff5722; }
+.locate-btn {
+    margin-left: 15px;
+    padding: 4px 12px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+}
+.locate-btn:hover {
+    background-color: #1976d2;
+}
+
+/* 文本框高亮动画（原有样式，保留） */
+#tenderTextarea.highlight {
+    animation: highlightPulse 1.5s ease-in-out;
+    border: 2px solid #ff5722 !important;
+    background-color: rgba(255, 87, 34, 0.05);
+}
+@keyframes highlightPulse {
+    0% { background-color: rgba(255, 87, 34, 0.1); }
+    50% { background-color: rgba(255, 87, 34, 0.2); }
+    100% { background-color: rgba(255, 87, 34, 0.05); }
+}
+
+/* ===================== 新增样式（首页+创建记录页） ===================== */
+/* 首页头部样式 */
+.header {
+    background: linear-gradient(135deg, #003366, #005599);
+    color: white;
+    padding: 16px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.header img {
+    height: 60px;
+}
+.header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    margin: 0 0 0 20px;
+}
+.header a {
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+/* 首页容器 */
+.home-container {
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+/* 模块网格布局 */
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+/* 模块卡片样式 */
+.module-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    text-align: center;
+}
+.module-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.module-card h3 {
+    color: #003366;
+    font-size: 18px;
+    margin-bottom: 8px;
+}
+.module-card p {
+    color: #666;
+    font-size: 14px;
+}
+.module-card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* 全链条分析模块 */
+.full-chain {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    text-align: center;
+}
+.full-chain h3 {
+    color: #003366;
+    font-size: 20px;
+}
+
+/* 创建记录页容器 */
+.create-record-container {
+    max-width: 1400px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+/* 创建项目区域 */
+.create-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+.create-card {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.create-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+.create-card h3 {
+    color: #003366;
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+.create-card p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* 项目记录网格 */
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+.project-card {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.project-card:hover {
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+.project-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: white;
+}
+.tag-generate {
+    background-color: #28a745;
+}
+.tag-review {
+    background-color: #17a2b8;
+}
+.project-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
+    margin: 24px 0 8px 0;
+}
+.project-time {
+    font-size: 13px;
+    color: #999;
+}
+
+/* 弹窗样式 */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    width: 90%;
+    max-width: 500px;
+}
+.modal-header {
+    font-size: 20px;
+    font-weight: 600;
+    color: #003366;
+    margin-bottom: 24px;
+}
+.option-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.option-card:hover {
+    border-color: #003366;
+    background-color: #f0f5ff;
+}
+.option-card.selected {
+    border-color: #003366;
+    background-color: #e6f0ff;
+}
+.form-group {
+    margin-bottom: 16px;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+}
+.form-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+}
+.btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+.btn {
+    padding: 10px 24px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+.btn-cancel {
+    background-color: #f0f0f0;
+    color: #333;
+}
+/* 平台容器 */
+.platform-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 顶部标题栏 */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #0066cc;
+}
+.header .logo img {
+    height: 60px;
+}
+.header h1 {
+    color: #0066cc;
+    font-size: 2.5rem;
+    margin: 0;
+}
+
+/* 作业区域 */
+.work-area {
+    margin-bottom: 40px;
+}
+.work-area h2 {
+    color: #004080;
+    margin-bottom: 20px;
+}
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+.module-card {
+    background-color: #e6f2ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    text-decoration: none;
+    color: #004080;
+    transition: all 0.3s ease;
+}
+.module-card:hover {
+    background-color: #b3d9ff;
+    transform: translateY(-5px);
+}
+.module-card.disabled {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+    color: #999;
+    cursor: not-allowed;
+}
+.module-card h3 {
+    margin-top: 0;
+    font-size: 1.2rem;
+}
+
+/* 全链条分析创建 */
+.full-chain {
+    margin-top: 40px;
+}
+.full-chain-card {
+    background-color: #0066cc;
+    color: white;
+    border-radius: 8px;
+    padding: 30px;
+    text-align: center;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+.full-chain-card:hover {
+    background-color: #004c99;
+    transform: translateY(-5px);
+}
+.full-chain-card h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+}
+
+/* 创建与记录页面 */
+.record-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+.record-container .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.back-btn {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 1rem;
+}
+.record-content {
+    margin-top: 40px;
+}
+.create-card {
+    background-color: #f0f8ff;
+    border: 2px dashed #0066cc;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 40px;
+    transition: all 0.3s ease;
+}
+.create-card:hover {
+    background-color: #e6f2ff;
+}
+.create-icon {
+    font-size: 3rem;
+    color: #0066cc;
+    margin-bottom: 20px;
+}
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+.project-card {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.project-mode {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+.project-mode.generate {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+.project-mode.compliance {
+    background-color: #fff3e0;
+    color: #ef6c00;
+}
+.project-card h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+}
+.project-time {
+    color: #999;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* 功能选择页面 */
+.mode-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+.mode-form {
+    margin-top: 40px;
+}
+.mode-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+.mode-option {
+    cursor: pointer;
+}
+.mode-card {
+    background-color: #f0f8ff;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.mode-option input:checked + .mode-card {
+    border-color: #0066cc;
+    background-color: #e6f2ff;
+}
+.mode-card h3 {
+    margin-top: 0;
+    color: #004080;
+}
+.project-info {
+    margin-bottom: 40px;
+}
+.project-info label {
+    display: block;
+    margin-bottom: 8px;
+    color: #333;
+    font-weight: bold;
+}
+.project-info input,
+.project-info textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+}
+.create-btn {
+    background-color: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 40px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.create-btn:hover {
+    background-color: #004c99;
+}
+
+/* ========================================================================== */
+/* 首页专属样式 - 独立隔离，不影响其他页面（核心修改区） */
+/* ========================================================================== */
+.shu-home-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    /* 调整背景渐变透明度，让背景图更清晰 */
+    background:
+        linear-gradient(135deg, rgba(15, 76, 129, 0.65) 0%, rgba(15, 32, 48, 0.7) 100%),
+        url("/static/images/shu-bg.jpg") center/cover no-repeat fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 80px 20px 40px;
+    box-sizing: border-box;
+}
+
+/* 顶部标题盒子 */
+.shu-home-title-box {
+    text-align: center;
+    margin-bottom: 80px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 主标题 */
+.shu-main-title {
+    color: #ffffff;
+    font-size: 42px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+/* 副标题 */
+.shu-sub-title {
+    color: #ffffff;
+    font-size: 22px;
+    font-weight: 400;
+    margin: 0;
+    opacity: 0.9;
+}
+
+/* 六大功能网格 */
+.shu-function-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 35px;
+    max-width: 1100px;
+    width: 100%;
+    margin-bottom: 60px;
+}
+
+/* 功能卡片 */
+.shu-function-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 15px 10px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+}
+/* 鼠标悬停效果：半透明卡片 + 毛玻璃 + 放大 */
+.shu-function-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(6px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 0;
+}
+.shu-function-card:hover::before {
+    opacity: 1;
+}
+.shu-function-card:hover {
+    transform: translateY(-6px) scale(1.08);
+}
+
+/* 功能图标 */
+.func-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 12px;
+    /* 白色图标投影，确保在背景白色区域清晰显示 */
+    filter: drop-shadow(0 2px 3px rgba(15, 76, 129, 0.6));
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+.shu-function-card:hover .func-icon {
+    transform: scale(1.12);
+}
+
+/* 功能名称 */
+.func-name {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 300;
+    text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+.shu-function-card:hover .func-name {
+    transform: scale(1.08);
+}
+
+/* 新增：功能描述区域 */
+.shu-desc-box {
+    text-align: center;
+    color: #ffffff;
+    max-width: 900px;
+    padding: 0 20px;
+    margin-top: 80px;
+}
+
+.shu-desc-title {
+    font-size: 36px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.shu-desc-text {
+    font-size: 22px;
+    font-weight: 400;
+    margin: 0;
+    opacity: 0.9;
+    line-height: 1.5;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式适配（小屏幕换行） */
+@media (max-width: 992px) {
+    .shu-function-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 30px;
+    }
+    .shu-desc-title {
+        font-size: 28px;
+    }
+    .shu-desc-text {
+        font-size: 18px;
+    }
+}
+@media (max-width: 576px) {
+    .shu-function-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 25px;
+    }
+    .shu-main-title {
+        font-size: 32px;
+    }
+    .shu-sub-title {
+        font-size: 18px;
+    }
+    .func-icon {
+        width: 50px;
+        height: 50px;
+    }
+    .func-name {
+        font-size: 14px;
+    }
+    .shu-desc-title {
+        font-size: 24px;
+    }
+    .shu-desc-text {
+        font-size: 16px;
+    }
+}

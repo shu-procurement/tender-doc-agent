@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>围标串标合规审查</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --primary: #0a84ff;
+            --accent: #00d4ff;
+            --success: #00e676;
+            --danger: #ff3b5c;
+            --bg-card: rgba(10, 25, 50, 0.45);
+            --border: rgba(0, 180, 255, 0.18);
+            --border-bright: rgba(0, 212, 255, 0.45);
+            --text-primary: #e8f4ff;
+            --text-secondary: #7ab3d4;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: transparent;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .page-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            background:
+                linear-gradient(135deg, rgba(5, 15, 35, 0.6) 0%, rgba(8, 25, 55, 0.55) 100%),
+                url("/static/images/shu-bg.jpg") center/cover no-repeat fixed;
+            position: relative;
+            overflow-x: hidden;
+        }
+        .page-wrapper::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0, 180, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.04) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .page-wrapper::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 180, 255, 0.012) 2px,
+                rgba(0, 180, 255, 0.012) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+        .top-nav {
+            background: linear-gradient(90deg, rgba(5, 15, 35, 0.95) 0%, rgba(0, 40, 90, 0.90) 100%);
+            backdrop-filter: blur(12px);
+            padding: 0 40px;
+            height: 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15);
+            border-bottom: 1px solid var(--border-bright);
+            position: relative;
+            z-index: 10;
+            animation: headerGlow 4s ease-in-out infinite;
+        }
+        .top-nav::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        }
+        @keyframes headerGlow {
+            0%, 100% { box-shadow: 0 2px 30px rgba(0, 130, 255, 0.15); }
+            50%       { box-shadow: 0 2px 40px rgba(0, 180, 255, 0.28); }
+        }
+        .nav-btn {
+            background: rgba(0, 130, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            letter-spacing: 0.5px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .nav-btn:hover {
+            background: rgba(0, 130, 255, 0.35);
+            border-color: rgba(0, 180, 255, 0.6);
+            transform: translateY(-1px);
+            color: #fff;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .page-title {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 36px;
+            letter-spacing: 2px;
+            animation: titleShift 3s ease-in-out infinite;
+        }
+        @keyframes titleShift {
+            0%, 100% { text-shadow: 0 0 20px rgba(0, 180, 255, 0.3); }
+            50%       { text-shadow: 0 0 35px rgba(0, 212, 255, 0.55), 0 0 60px rgba(0, 130, 255, 0.2); }
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255,255,255,0.04);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.5), transparent);
+        }
+        .card:hover {
+            border-color: rgba(0, 180, 255, 0.35);
+            box-shadow: 0 8px 35px rgba(0, 130, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 180, 255, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title::before {
+            content: '';
+            display: inline-block;
+            width: 3px;
+            height: 16px;
+            background: linear-gradient(180deg, var(--accent), var(--primary));
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #0060cc, #0a84ff);
+            color: #fff;
+            border: 1px solid rgba(0, 180, 255, 0.4);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(0, 130, 255, 0.3);
+            white-space: nowrap;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0070e0, #1a94ff);
+            box-shadow: 0 0 22px rgba(0, 150, 255, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #007a40, #00c060);
+            color: #fff;
+            border: 1px solid rgba(0, 230, 118, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(0, 200, 100, 0.25);
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #009050, #00d870);
+            box-shadow: 0 0 22px rgba(0, 220, 120, 0.45);
+            transform: translateY(-1px);
+        }
+        .btn-success:disabled {
+            background: linear-gradient(135deg, #1a3a2a, #1a4a30);
+            color: #4a7a5a;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #8b0020, #cc1a3a);
+            color: #fff;
+            border: 1px solid rgba(255, 60, 90, 0.35);
+            padding: 9px 22px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 14px rgba(200, 30, 60, 0.2);
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #a0002a, #e01a40);
+            box-shadow: 0 0 22px rgba(220, 40, 70, 0.4);
+            transform: translateY(-1px);
+        }
+        .action-buttons { display: flex; gap: 15px; }
+        /* 围标准则折叠 */
+        .criteria-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        .criteria-toggle .toggle-icon {
+            font-size: 12px;
+            color: var(--text-secondary);
+            transition: transform 0.3s ease;
+        }
+        .criteria-toggle.open .toggle-icon { transform: rotate(180deg); }
+        .criteria-list {
+            display: none;
+            margin-top: 16px;
+        }
+        .criteria-list.open { display: block; }
+        .criteria-item {
+            display: flex;
+            gap: 12px;
+            padding: 10px 14px;
+            margin-bottom: 8px;
+            background: rgba(0, 60, 120, 0.15);
+            border: 1px solid rgba(0, 180, 255, 0.1);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        .criteria-num {
+            color: var(--accent);
+            font-weight: 700;
+            min-width: 22px;
+            font-size: 13px;
+        }
+        /* 文件上传 */
+        .upload-drop-zone {
+            border: 2px dashed rgba(0, 180, 255, 0.3);
+            border-radius: 10px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+        .upload-drop-zone:hover, .upload-drop-zone.drag-over {
+            border-color: var(--accent);
+            background: rgba(0, 130, 255, 0.08);
+        }
+        .upload-drop-icon { font-size: 32px; margin-bottom: 8px; }
+        .upload-drop-text { color: var(--text-secondary); font-size: 13px; }
+        .upload-drop-text span { color: var(--accent); }
+        .file-list { margin-top: 12px; }
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(0, 60, 120, 0.2);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .file-item-icon { color: var(--accent); font-size: 16px; }
+        .file-item-name { flex: 1; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item-status { font-size: 11px; }
+        .file-item-status.uploading { color: var(--accent); }
+        .file-item-status.done { color: var(--success); }
+        .file-item-status.error { color: var(--danger); }
+        .file-item-remove {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0 4px;
+            line-height: 1;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .file-item-remove:hover { opacity: 1; }
+        /* 结果区域 */
+        .result-container { color: var(--text-primary); font-size: 14px; }
+        .result-tip {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-left: 10px;
+        }
+        .risk-high { background: rgba(255, 59, 92, 0.2); color: var(--danger); border: 1px solid rgba(255, 59, 92, 0.4); }
+        .risk-medium { background: rgba(255, 180, 0, 0.15); color: #ffb400; border: 1px solid rgba(255, 180, 0, 0.35); }
+        .risk-low { background: rgba(0, 230, 118, 0.15); color: var(--success); border: 1px solid rgba(0, 230, 118, 0.35); }
+        .result-section { margin-bottom: 24px; }
+        .result-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 12px;
+            padding-left: 10px;
+            border-left: 3px solid var(--accent);
+            letter-spacing: 0.5px;
+        }
+        .bidder-card {
+            padding: 14px 16px;
+            background: rgba(0, 60, 120, 0.18);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .bidder-name { font-weight: 600; color: var(--text-primary); margin-bottom: 6px; font-size: 13px; }
+        .bidder-detail { font-size: 12px; color: #c8e0ff; line-height: 1.7; }
+        .violation-item {
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 3px solid var(--danger);
+            background: rgba(120, 30, 50, 0.2);
+        }
+        .violation-type { font-size: 12px; color: var(--danger); font-weight: 600; margin-bottom: 4px; }
+        .violation-desc { font-size: 13px; color: var(--text-primary); margin-bottom: 6px; }
+        .violation-evidence { font-size: 12px; color: #c8e0ff; }
+        .violation-suggestion { font-size: 12px; color: var(--success); margin-top: 4px; }
+        .conclusion-box {
+            padding: 16px 18px;
+            background: rgba(0, 40, 80, 0.3);
+            border: 1px solid rgba(0, 180, 255, 0.2);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.8;
+        }
+        .loading-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px 0;
+            gap: 16px;
+        }
+        .loading-ring {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(0, 180, 255, 0.15);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-secondary); font-size: 13px; letter-spacing: 1px; }
+        #particles-canvas {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.45;
+        }
+        .reveal {
+            opacity: 0;
+            transform: translateY(24px);
+            transition: opacity 0.55s ease, transform 0.55s ease;
+        }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(0, 180, 255, 0.3); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(0, 180, 255, 0.5); }
+        @media (max-width: 768px) { .top-nav { padding: 0 20px; } }
+
+        /* ===== 左右对比布局 ===== */
+        .split-layout {
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .split-left {
+            width: 35%;
+            flex-shrink: 0;
+            max-height: 680px;
+            overflow-y: auto;
+            position: sticky;
+            top: 20px;
+        }
+        .split-right {
+            flex: 1;
+            max-height: 680px;
+            overflow-y: auto;
+        }
+        /* 风险等级总览 */
+        .risk-overview {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 12px 14px;
+            background: rgba(0, 40, 80, 0.4);
+            border-radius: 8px;
+            border: 1px solid rgba(0, 180, 255, 0.15);
+        }
+        .risk-overview-label { font-size: 13px; color: var(--text-secondary); }
+        /* 风险点卡片（左侧列表） */
+        .risk-item {
+            padding: 12px 14px;
+            margin-bottom: 8px;
+            background: rgba(0, 40, 80, 0.25);
+            border: 1px solid rgba(0, 180, 255, 0.12);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .risk-item:hover {
+            border-color: rgba(0, 180, 255, 0.4);
+            background: rgba(0, 60, 120, 0.3);
+            transform: translateX(3px);
+        }
+        .risk-item.active {
+            border-color: var(--accent);
+            background: rgba(0, 80, 150, 0.35);
+        }
+        .risk-item-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        .risk-tag {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+        }
+        .risk-tag.high { background: rgba(255,59,92,0.2); color: var(--danger); border: 1px solid rgba(255,59,92,0.35); }
+        .risk-tag.medium { background: rgba(255,180,0,0.15); color: #ffb400; border: 1px solid rgba(255,180,0,0.3); }
+        .risk-tag.low { background: rgba(0,230,118,0.12); color: var(--success); border: 1px solid rgba(0,230,118,0.3); }
+        .risk-item-desc { font-size: 12px; color: var(--text-primary); line-height: 1.5; }
+        /* 投标方折叠 */
+        .bidders-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            padding: 10px 14px;
+            background: rgba(0, 40, 80, 0.25);
+            border: 1px solid rgba(0, 180, 255, 0.12);
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            user-select: none;
+        }
+        .bidders-toggle .toggle-icon { font-size: 11px; transition: transform 0.3s; }
+        .bidders-toggle.open .toggle-icon { transform: rotate(180deg); }
+        .bidders-body { display: none; margin-top: 6px; }
+        .bidders-body.open { display: block; }
+        .bidder-mini {
+            padding: 10px 12px;
+            margin-bottom: 6px;
+            background: rgba(0, 40, 80, 0.2);
+            border: 1px solid rgba(0, 180, 255, 0.1);
+            border-radius: 6px;
+        }
+        .bidder-mini-name { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+        .bidder-mini-text { font-size: 11px; color: #c8e0ff; line-height: 1.6; }
+        /* 右侧文件名标签栏 */
+        .file-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+        .file-tab {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            border: 1px solid rgba(0, 180, 255, 0.25);
+            color: var(--text-secondary);
+            background: rgba(0, 40, 80, 0.3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 160px;
+        }
+        /* 对比块 */
+        .compare-block {
+            margin-bottom: 14px;
+            border: 1px solid rgba(0, 180, 255, 0.12);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+        .compare-block.flash {
+            box-shadow: 0 0 0 2px var(--accent), 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+        .compare-block-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            background: rgba(0, 30, 70, 0.5);
+            border-bottom: 1px solid rgba(0, 180, 255, 0.1);
+            font-size: 12px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .compare-pairs {
+            display: flex;
+            gap: 0;
+        }
+        .compare-pair {
+            flex: 1;
+            padding: 12px 14px;
+            border-right: 1px solid rgba(0, 180, 255, 0.08);
+            font-size: 12px;
+            color: #c8e0ff;
+            line-height: 1.7;
+            min-width: 0;
+        }
+        .compare-pair:last-child { border-right: none; }
+        .compare-pair-file {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        /* 左边框颜色区分不同文件 */
+        .compare-pair:nth-child(1) { border-left: 3px solid #0a84ff; }
+        .compare-pair:nth-child(2) { border-left: 3px solid #ff9f0a; }
+        .compare-pair:nth-child(3) { border-left: 3px solid #30d158; }
+        .compare-pair:nth-child(4) { border-left: 3px solid #bf5af2; }
+        /* 高亮关键词 */
+        .hl { background: rgba(255, 214, 10, 0.25); color: #ffe066; border-radius: 2px; padding: 0 2px; }
+        /* 综合结论（无similar_segments时显示） */
+        .conclusion-fallback {
+            padding: 16px 18px;
+            background: rgba(0, 40, 80, 0.3);
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.8;
+        }
+        @media (max-width: 900px) {
+            .split-layout { flex-direction: column; }
+            .split-left { width: 100%; max-height: none; position: static; }
+            .split-right { max-height: none; }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    <div class="page-wrapper">
+        <div class="top-nav">
+            <button id="backBtn" class="nav-btn">&#8592; 返回记录</button>
+            <button id="saveBtn" class="nav-btn">保存</button>
+        </div>
+
+        <div class="main-container">
+            <h1 class="page-title">围标串标合规审查</h1>
+
+            <!-- 围标串标判断准则 -->
+            <div class="card reveal">
+                <div class="card-title criteria-toggle" id="criteriaToggle">
+                    <span>围标串标判断准则</span>
+                    <span class="toggle-icon">&#9660;</span>
+                </div>
+                <div class="criteria-list" id="criteriaList">
+                    <div class="criteria-item"><span class="criteria-num">1</span><span>投标人之间相互约定，一致抬高或压低投标报价</span></div>
+                    <div class="criteria-item"><span class="criteria-num">2</span><span>投标人之间相互约定，在招标项目中轮流以高价位或低价位中标</span></div>
+                    <div class="criteria-item"><span class="criteria-num">3</span><span>投标人之间先进行内部竞价，内定中标人，再参加投标</span></div>
+                    <div class="criteria-item"><span class="criteria-num">4</span><span>投标人之间其他串通投标行为</span></div>
+                    <div class="criteria-item"><span class="criteria-num">5</span><span>招标人在开标前开启投标文件并将有关信息泄露给其他投标人</span></div>
+                    <div class="criteria-item"><span class="criteria-num">6</span><span>招标人直接或间接向投标人泄露标底、评标委员会成员等信息</span></div>
+                    <div class="criteria-item"><span class="criteria-num">7</span><span>招标人明示或暗示投标人压低或抬高投标报价</span></div>
+                    <div class="criteria-item"><span class="criteria-num">8</span><span>招标人授意投标人撤换、修改投标文件</span></div>
+                    <div class="criteria-item"><span class="criteria-num">9</span><span>招标人明示或暗示评标委员会成员倾向性评审</span></div>
+                    <div class="criteria-item"><span class="criteria-num">10</span><span>招标人与投标人之间其他串通投标行为</span></div>
+                </div>
+            </div>
+
+            <!-- 文件上传 -->
+            <div class="card reveal">
+                <div class="card-title">上传投标合同文件</div>
+                <div class="upload-drop-zone" id="dropZone">
+                    <div class="upload-drop-icon">&#128196;</div>
+                    <div class="upload-drop-text">拖拽文件到此处，或 <span>点击选择文件</span></div>
+                    <div class="upload-drop-text" style="margin-top:6px;font-size:11px;">支持 PDF、Word、TXT 格式，可同时上传多份合同</div>
+                    <input type="file" id="fileInput" multiple accept=".pdf,.doc,.docx,.txt" style="display:none">
+                </div>
+                <div class="file-list" id="fileList"></div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="card reveal" style="padding: 18px 28px;">
+                <div class="action-buttons">
+                    <button id="analyzeBtn" class="btn-success">&#9654; 开始分析</button>
+                    <button id="clearBtn" class="btn-danger">清空所有</button>
+                </div>
+            </div>
+
+            <!-- 分析结果：左右分栏 -->
+            <div id="resultSection" class="card reveal" style="display:none;">
+                <div class="card-title">分析结果</div>
+                <div class="split-layout">
+                    <!-- 左侧：风险点列表 -->
+                    <div class="split-left">
+                        <div id="riskOverview" class="risk-overview">
+                            <span class="risk-overview-label">总体风险</span>
+                            <span id="riskBadge" class="risk-badge">-</span>
+                        </div>
+                        <div id="riskList"></div>
+                        <!-- 投标方折叠 -->
+                        <div id="biddersToggle" class="bidders-toggle" style="display:none;">
+                            <span>各投标方分析</span>
+                            <span class="toggle-icon">&#9660;</span>
+                        </div>
+                        <div id="biddersBody" class="bidders-body"></div>
+                    </div>
+                    <!-- 右侧：段落对比 -->
+                    <div class="split-right">
+                        <div id="fileTabs" class="file-tabs"></div>
+                        <div id="compareBlocks"></div>
+                    </div>
+                </div>
+            </div>
+            <!-- 初始提示（未分析时显示） -->
+            <div id="resultTip" class="card reveal">
+                <div class="result-tip">上传多份投标合同后，点击「开始分析」，AI 将自动检测是否存在围标串标等违规行为。</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const projectId = new URLSearchParams(window.location.search).get('project_id');
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const fileListEl = document.getElementById('fileList');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        let contracts = [];
+        let lastResult = null;
+
+        // 折叠准则
+        document.getElementById('criteriaToggle').addEventListener('click', function() {
+            this.classList.toggle('open');
+            document.getElementById('criteriaList').classList.toggle('open');
+        });
+
+        // 拖拽上传
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', e => {
+            e.preventDefault();
+            dropZone.classList.remove('drag-over');
+            handleFiles(Array.from(e.dataTransfer.files));
+        });
+        fileInput.addEventListener('change', e => {
+            handleFiles(Array.from(e.target.files));
+            fileInput.value = '';
+        });
+
+        function handleFiles(files) { files.forEach(file => uploadFile(file)); }
+
+        async function uploadFile(file) {
+            const itemId = 'fi_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.id = itemId;
+            item.innerHTML = `
+                <span class="file-item-icon">&#128196;</span>
+                <span class="file-item-name" title="${file.name}">${file.name}</span>
+                <span class="file-item-status uploading" id="st_${itemId}">上传中...</span>
+                <button class="file-item-remove" onclick="removeFile('${itemId}')" title="移除">&#215;</button>
+            `;
+            fileListEl.appendChild(item);
+            const formData = new FormData();
+            formData.append('file', file);
+            try {
+                const res = await fetch('/upload', { method: 'POST', body: formData });
+                const data = await res.json();
+                const stEl = document.getElementById('st_' + itemId);
+                if (data.success) {
+                    contracts.push({ id: itemId, name: file.name, content: data.content });
+                    if (stEl) { stEl.textContent = '已就绪'; stEl.className = 'file-item-status done'; }
+                } else {
+                    if (stEl) { stEl.textContent = '失败'; stEl.className = 'file-item-status error'; }
+                    alert('文件 ' + file.name + ' 处理失败：' + (data.error || '未知错误'));
+                }
+            } catch (err) {
+                const stEl = document.getElementById('st_' + itemId);
+                if (stEl) { stEl.textContent = '失败'; stEl.className = 'file-item-status error'; }
+                alert('上传出错：' + err.message);
+            }
+        }
+
+        function removeFile(itemId) {
+            contracts = contracts.filter(c => c.id !== itemId);
+            const el = document.getElementById(itemId);
+            if (el) el.remove();
+        }
+
+        // 分析按钮
+        analyzeBtn.addEventListener('click', async () => {
+            const ready = contracts.filter(c => c.content);
+            if (ready.length < 2) { alert('请至少上传两份投标合同再进行分析'); return; }
+            analyzeBtn.disabled = true;
+            analyzeBtn.textContent = '分析中...';
+            // 显示加载状态
+            document.getElementById('resultTip').style.display = 'none';
+            const section = document.getElementById('resultSection');
+            section.style.display = 'block';
+            document.getElementById('riskList').innerHTML = `
+                <div class="loading-wrap">
+                    <div class="loading-ring"></div>
+                    <div class="loading-text">AI 正在分析围标串标风险，请稍候...</div>
+                </div>`;
+            document.getElementById('compareBlocks').innerHTML = '';
+            document.getElementById('fileTabs').innerHTML = '';
+            try {
+                const res = await fetch('/analyze_bid_collusion', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contracts: ready.map(c => ({ name: c.name, content: c.content })),
+                        project_id: projectId
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    lastResult = data.result;
+                    renderResult(data.result);
+                } else {
+                    document.getElementById('riskList').innerHTML =
+                        `<div class="result-tip" style="color:var(--danger)">分析失败：${data.error || '未知错误'}</div>`;
+                }
+            } catch (err) {
+                document.getElementById('riskList').innerHTML =
+                    `<div class="result-tip" style="color:var(--danger)">请求出错：${err.message}</div>`;
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.textContent = '▶ 开始分析';
+            }
+        });
+
+        // 渲染结果
+        function renderResult(result) {
+            const riskLevel = result.risk_level || 'low';
+            const riskMap = { high: ['高风险', 'risk-high'], medium: ['中风险', 'risk-medium'], low: ['低风险', 'risk-low'] };
+            const [riskText, riskClass] = riskMap[riskLevel] || riskMap.low;
+
+            // 风险徽章
+            const badge = document.getElementById('riskBadge');
+            badge.textContent = riskText;
+            badge.className = 'risk-badge ' + riskClass;
+
+            // 左侧：风险点列表（来自 violations + similar_segments）
+            const riskListEl = document.getElementById('riskList');
+            riskListEl.innerHTML = '';
+
+            const violations = result.violations || [];
+            const segments = result.similar_segments || [];
+
+            // violations 渲染为风险点卡片
+            violations.forEach((v, i) => {
+                const card = document.createElement('div');
+                card.className = 'risk-item';
+                card.dataset.segIdx = 'v_' + i;
+                const tagClass = v.type && v.type.includes('高') ? 'high' : 'medium';
+                card.innerHTML = `
+                    <div class="risk-item-header">
+                        <span class="risk-tag ${tagClass}">${v.type || '违规行为'}</span>
+                    </div>
+                    <div class="risk-item-desc">${v.description || ''}</div>
+                    ${v.suggestion ? `<div class="risk-item-desc" style="color:var(--success);margin-top:4px;font-size:11px;">建议：${v.suggestion}</div>` : ''}
+                `;
+                card.addEventListener('click', () => scrollToBlock('v_' + i, card));
+                riskListEl.appendChild(card);
+            });
+
+            // similar_segments 也渲染为风险点卡片
+            segments.forEach((seg, i) => {
+                const card = document.createElement('div');
+                card.className = 'risk-item';
+                card.dataset.segIdx = 's_' + i;
+                card.innerHTML = `
+                    <div class="risk-item-header">
+                        <span class="risk-tag ${seg.risk || 'medium'}">${seg.risk === 'high' ? '高风险' : seg.risk === 'low' ? '低风险' : '中风险'}</span>
+                    </div>
+                    <div class="risk-item-desc">${seg.label || ''}</div>
+                `;
+                card.addEventListener('click', () => scrollToBlock('s_' + i, card));
+                riskListEl.appendChild(card);
+            });
+
+            if (violations.length === 0 && segments.length === 0) {
+                riskListEl.innerHTML = '<div class="result-tip" style="padding:20px 0;">未发现明显违规风险点</div>';
+            }
+
+            // 投标方折叠
+            const bidders = result.bidders || [];
+            const bToggle = document.getElementById('biddersToggle');
+            const bBody = document.getElementById('biddersBody');
+            if (bidders.length > 0) {
+                bToggle.style.display = 'flex';
+                bBody.innerHTML = bidders.map(b => `
+                    <div class="bidder-mini">
+                        <div class="bidder-mini-name">${b.name || '未知投标方'}</div>
+                        <div class="bidder-mini-text">${b.analysis || ''}</div>
+                    </div>`).join('');
+                bToggle.addEventListener('click', function() {
+                    this.classList.toggle('open');
+                    bBody.classList.toggle('open');
+                });
+            }
+
+            // 右侧：文件名标签栏
+            const tabsEl = document.getElementById('fileTabs');
+            tabsEl.innerHTML = '';
+            const fileNames = contracts.filter(c => c.content).map(c => c.name);
+            const tabColors = ['#0a84ff', '#ff9f0a', '#30d158', '#bf5af2'];
+            fileNames.forEach((name, i) => {
+                const tab = document.createElement('span');
+                tab.className = 'file-tab';
+                tab.style.borderColor = tabColors[i % tabColors.length];
+                tab.style.color = tabColors[i % tabColors.length];
+                tab.title = name;
+                tab.textContent = name.length > 16 ? name.slice(0, 14) + '…' : name;
+                tabsEl.appendChild(tab);
+            });
+
+            // 右侧：对比块
+            const blocksEl = document.getElementById('compareBlocks');
+            blocksEl.innerHTML = '';
+
+            // violations 对比块（显示 evidence）
+            violations.forEach((v, i) => {
+                const block = document.createElement('div');
+                block.className = 'compare-block';
+                block.id = 'block_v_' + i;
+                block.innerHTML = `
+                    <div class="compare-block-header">
+                        <span class="risk-tag ${v.type && v.type.includes('高') ? 'high' : 'medium'}">${v.type || '违规'}</span>
+                        <span>${v.description || ''}</span>
+                    </div>
+                    <div class="compare-pairs">
+                        <div class="compare-pair">
+                            <div class="compare-pair-file">证据原文</div>
+                            <div>${highlightText(v.evidence || '（无原文证据）')}</div>
+                            ${v.suggestion ? `<div style="margin-top:8px;font-size:11px;color:var(--success)">建议：${v.suggestion}</div>` : ''}
+                        </div>
+                    </div>`;
+                blocksEl.appendChild(block);
+            });
+
+            // similar_segments 对比块（并排展示各文件片段）
+            segments.forEach((seg, i) => {
+                const block = document.createElement('div');
+                block.className = 'compare-block';
+                block.id = 'block_s_' + i;
+                const pairsHtml = (seg.pairs || []).map(p => `
+                    <div class="compare-pair">
+                        <div class="compare-pair-file" title="${p.file || ''}">${p.file || '未知文件'}</div>
+                        <div>${highlightText(p.text || '')}</div>
+                    </div>`).join('');
+                block.innerHTML = `
+                    <div class="compare-block-header">
+                        <span class="risk-tag ${seg.risk || 'medium'}">${seg.risk === 'high' ? '高风险' : seg.risk === 'low' ? '低风险' : '中风险'}</span>
+                        <span>${seg.label || ''}</span>
+                    </div>
+                    <div class="compare-pairs">${pairsHtml}</div>`;
+                blocksEl.appendChild(block);
+            });
+
+            // 无对比数据时显示综合结论
+            if (violations.length === 0 && segments.length === 0 && result.conclusion) {
+                blocksEl.innerHTML = `<div class="conclusion-fallback">${typeof marked !== 'undefined' ? marked.parse(result.conclusion) : result.conclusion}</div>`;
+            } else if (result.conclusion) {
+                const conclusionBlock = document.createElement('div');
+                conclusionBlock.className = 'compare-block';
+                conclusionBlock.innerHTML = `
+                    <div class="compare-block-header"><span>综合结论</span></div>
+                    <div class="compare-pairs">
+                        <div class="compare-pair" style="border-left:3px solid var(--accent);">
+                            <div>${typeof marked !== 'undefined' ? marked.parse(result.conclusion) : result.conclusion}</div>
+                        </div>
+                    </div>`;
+                blocksEl.appendChild(conclusionBlock);
+            }
+        }
+
+        // 点击左侧卡片，右侧对应块滚动到视图并闪烁
+        function scrollToBlock(segIdx, card) {
+            document.querySelectorAll('.risk-item').forEach(el => el.classList.remove('active'));
+            card.classList.add('active');
+            const block = document.getElementById('block_' + segIdx);
+            if (!block) return;
+            block.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            block.classList.add('flash');
+            setTimeout(() => block.classList.remove('flash'), 1200);
+        }
+
+        // 简单高亮：对重复出现的短语加高亮（跨文件雷同词）
+        function highlightText(text) {
+            if (!text) return '';
+            // 转义 HTML
+            const escaped = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+            return escaped;
+        }
+
+        // 清空
+        clearBtn.addEventListener('click', () => {
+            if (confirm('确定要清空所有内容吗？')) {
+                contracts = [];
+                lastResult = null;
+                fileListEl.innerHTML = '';
+                fileInput.value = '';
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('resultTip').style.display = 'block';
+            }
+        });
+
+        document.getElementById('backBtn').addEventListener('click', () => {
+            window.location.href = "{{ url_for('tender_bid_record') }}";
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            try {
+                const res = await fetch('/save_project', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project_id: projectId,
+                        contracts: contracts.map(c => ({ name: c.name, content: c.content })),
+                        analysis_result: lastResult ? JSON.stringify(lastResult) : ''
+                    })
+                });
+                const data = await res.json();
+                alert(data.success ? '已保存' : '保存失败：' + (data.error || '未知错误'));
+            } catch (err) {
+                alert('保存失败，请检查网络连接');
+            }
+        });
+
+        // 恢复已有数据
+        if (projectId) {
+            fetch('/get_project_data?project_id=' + projectId)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        if (data.data.contracts && data.data.contracts.length > 0) {
+                            data.data.contracts.forEach(c => {
+                                const itemId = 'fi_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+                                contracts.push({ id: itemId, name: c.name, content: c.content });
+                                const item = document.createElement('div');
+                                item.className = 'file-item';
+                                item.id = itemId;
+                                item.innerHTML = `
+                                    <span class="file-item-icon">&#128196;</span>
+                                    <span class="file-item-name" title="${c.name}">${c.name}</span>
+                                    <span class="file-item-status done">已就绪</span>
+                                    <button class="file-item-remove" onclick="removeFile('${itemId}')" title="移除">&#215;</button>
+                                `;
+                                fileListEl.appendChild(item);
+                            });
+                        }
+                        if (data.data.analysis_result) {
+                            try {
+                                const saved = typeof data.data.analysis_result === 'string'
+                                    ? JSON.parse(data.data.analysis_result)
+                                    : data.data.analysis_result;
+                                lastResult = saved;
+                                document.getElementById('resultTip').style.display = 'none';
+                                document.getElementById('resultSection').style.display = 'block';
+                                renderResult(saved);
+                            } catch(e) {}
+                        }
+                    }
+                })
+                .catch(() => {});
+        }
+    </script>
+    <script>
+        (function() {
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            let W, H, particles = [];
+            function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+            resize();
+            window.addEventListener('resize', resize);
+            for (let i = 0; i < 55; i++) {
+                particles.push({
+                    x: Math.random() * 1920, y: Math.random() * 1080,
+                    r: Math.random() * 1.5 + 0.4,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3,
+                    a: Math.random() * 0.5 + 0.2
+                });
+            }
+            function draw() {
+                ctx.clearRect(0, 0, W, H);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0,212,255,${p.a})`;
+                    ctx.fill();
+                    p.x += p.vx; p.y += p.vy;
+                    if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+                    if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+                });
+                for (let i = 0; i < particles.length; i++) {
+                    for (let j = i + 1; j < particles.length; j++) {
+                        const dx = particles[i].x - particles[j].x;
+                        const dy = particles[i].y - particles[j].y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 120) {
+                            ctx.beginPath();
+                            ctx.moveTo(particles[i].x, particles[i].y);
+                            ctx.lineTo(particles[j].x, particles[j].y);
+                            ctx.strokeStyle = `rgba(0,180,255,${0.12 * (1 - dist/120)})`;
+                            ctx.lineWidth = 0.5;
+                            ctx.stroke();
+                        }
+                    }
+                }
+                requestAnimationFrame(draw);
+            }
+            draw();
+        })();
+
+        (function() {
+            const els = document.querySelectorAll('.reveal');
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+            }, { threshold: 0.08 });
+            els.forEach(el => io.observe(el));
+        })();
+
+        window.addEventListener('scroll', () => {
+            const wrapper = document.querySelector('.page-wrapper');
+            if (wrapper) wrapper.style.backgroundPositionY = `calc(center + ${window.scrollY * 0.25}px)`;
+        });
+    </script>
+</body>
+</html>

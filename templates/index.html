@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上海大学采购智能平台</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* ===== 首页专属科技感样式 ===== */
+        .shu-home-wrapper {
+            width: 100%;
+            min-height: 100vh;
+            background:
+                linear-gradient(135deg, rgba(5, 15, 35, 0.6) 0%, rgba(8, 25, 55, 0.55) 100%),
+                url("/static/images/shu-bg.jpg") center/cover no-repeat fixed;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 60px 20px 40px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 动态网格背景 */
+        .shu-home-wrapper::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 180, 255, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 180, 255, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 顶部光晕装饰 */
+        .shu-home-wrapper::after {
+            content: '';
+            position: fixed;
+            top: -200px; left: 50%;
+            transform: translateX(-50%);
+            width: 800px; height: 400px;
+            background: radial-gradient(ellipse, rgba(0, 120, 255, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 顶部标题区 */
+        .shu-home-title-box {
+            text-align: center;
+            margin-bottom: 70px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 顶部装饰线 */
+        .shu-title-deco {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .shu-title-deco-line {
+            width: 80px; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.8));
+        }
+        .shu-title-deco-line.right {
+            background: linear-gradient(90deg, rgba(0, 180, 255, 0.8), transparent);
+        }
+        .shu-title-deco-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: #00b4ff;
+            box-shadow: 0 0 10px #00b4ff, 0 0 20px rgba(0, 180, 255, 0.5);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.7; }
+        }
+
+        .shu-main-title {
+            color: #ffffff;
+            font-size: 44px;
+            font-weight: 700;
+            margin: 0 0 14px 0;
+            letter-spacing: 4px;
+            text-shadow: 0 0 30px rgba(0, 180, 255, 0.4), 0 2px 10px rgba(0,0,0,0.5);
+            background: linear-gradient(135deg, #ffffff 0%, #a8d8ff 50%, #ffffff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .shu-sub-title {
+            color: rgba(160, 210, 255, 0.85);
+            font-size: 18px;
+            font-weight: 300;
+            margin: 0;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+        }
+
+        /* 八大功能网格（2行×4列） */
+        .shu-function-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 100px;
+            max-width: 900px;
+            width: 100%;
+            margin-bottom: 40px;
+            margin-top: -50px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 功能卡片 */
+        .shu-function-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            padding: 18px 8px 14px;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0, 180, 255, 0.15);
+            background: rgba(10, 30, 60, 0.4);
+            backdrop-filter: blur(8px);
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            aspect-ratio: 4 / 3;
+        }
+
+        /* 卡片顶部高光线 */
+        .shu-function-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 10%; right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.6), transparent);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+        }
+
+        /* 卡片内部光晕 */
+        .shu-function-card::after {
+            content: '';
+            position: absolute;
+            bottom: -40px; left: 50%;
+            transform: translateX(-50%);
+            width: 80px; height: 80px;
+            background: radial-gradient(circle, rgba(0, 180, 255, 0.2) 0%, transparent 70%);
+            opacity: 0;
+            transition: all 0.35s ease;
+        }
+
+        .shu-function-card:hover {
+            transform: translateY(-8px) scale(1.05);
+            border-color: rgba(0, 180, 255, 0.5);
+            background: rgba(0, 60, 120, 0.5);
+            box-shadow:
+                0 0 20px rgba(0, 180, 255, 0.15),
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        .shu-function-card:hover::before { opacity: 1; }
+        .shu-function-card:hover::after { opacity: 1; bottom: -20px; }
+
+        /* 功能图标 */
+        .func-icon {
+            width: 58px; height: 58px;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.35s ease;
+            filter: drop-shadow(0 0 8px rgba(0, 180, 255, 0.4)) brightness(1.1);
+        }
+        .shu-function-card:hover .func-icon {
+            transform: scale(1.15) translateY(-2px);
+            filter: drop-shadow(0 0 14px rgba(0, 180, 255, 0.7)) brightness(1.2);
+        }
+
+        /* 功能名称 */
+        .func-name {
+            color: rgba(200, 230, 255, 0.9);
+            font-size: 15px;
+            font-weight: 400;
+            text-align: center;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+            transition: all 0.35s ease;
+        }
+        .shu-function-card:hover .func-name {
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(0, 180, 255, 0.6);
+        }
+
+        /* 描述区域 */
+        .shu-desc-box {
+            text-align: center;
+            color: #ffffff;
+            max-width: 860px;
+            padding: 36px 48px;
+            margin-top: 0px;
+            position: relative;
+            z-index: 1;
+            border: 1px solid rgba(0, 180, 255, 0.12);
+            border-radius: 16px;
+            background: rgba(5, 20, 45, 0.5);
+            backdrop-filter: blur(12px);
+            box-shadow: 0 0 40px rgba(0, 100, 200, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 描述框四角装饰 */
+        .shu-desc-box::before,
+        .shu-desc-box::after {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            border-color: rgba(0, 180, 255, 0.5);
+            border-style: solid;
+        }
+        .shu-desc-box::before {
+            top: -1px; left: -1px;
+            border-width: 2px 0 0 2px;
+            border-radius: 4px 0 0 0;
+        }
+        .shu-desc-box::after {
+            bottom: -1px; right: -1px;
+            border-width: 0 2px 2px 0;
+            border-radius: 0 0 4px 0;
+        }
+
+        .shu-desc-title {
+            font-size: 32px;
+            font-weight: 600;
+            margin: 0 0 12px 0;
+            letter-spacing: 3px;
+            background: linear-gradient(135deg, #ffffff, #7ec8ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: all 0.3s ease;
+        }
+
+        .shu-desc-text {
+            font-size: 16px;
+            font-weight: 300;
+            margin: 0;
+            opacity: 0.8;
+            line-height: 1.8;
+            color: rgba(180, 220, 255, 0.9);
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        /* 底部装饰 */
+        .shu-bottom-deco {
+            position: relative;
+            z-index: 1;
+            margin-top: 32px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            opacity: 0.4;
+        }
+        .shu-bottom-deco-line {
+            width: 120px; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(0, 180, 255, 0.6));
+        }
+        .shu-bottom-deco-line.right {
+            background: linear-gradient(90deg, rgba(0, 180, 255, 0.6), transparent);
+        }
+        .shu-bottom-deco-text {
+            color: rgba(0, 180, 255, 0.8);
+            font-size: 11px;
+            letter-spacing: 3px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 992px) {
+            .shu-function-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+            .shu-main-title { font-size: 34px; }
+        }
+        @media (max-width: 576px) {
+            .shu-function-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .shu-main-title { font-size: 26px; letter-spacing: 2px; }
+            .shu-sub-title { font-size: 14px; letter-spacing: 4px; }
+            .func-icon { width: 46px; height: 46px; }
+            .func-name { font-size: 13px; }
+            .shu-desc-title { font-size: 22px; }
+            .shu-desc-text { font-size: 14px; }
+            .shu-desc-box { padding: 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shu-home-wrapper">
+        <!-- 顶部标题区域 -->
+        <div class="shu-home-title-box">
+            <div class="shu-title-deco">
+                <div class="shu-title-deco-line"></div>
+                <div class="shu-title-deco-dot"></div>
+                <div class="shu-title-deco-line right"></div>
+            </div>
+            <h1 class="shu-main-title">大学采购全链协同智能体平台</h1>
+            <p class="shu-sub-title">应用功能</p>
+        </div>
+
+        <!-- 八大功能模块区域（2行×4列） -->
+        <div class="shu-function-grid">
+            <!-- 第一行 -->
+            <!-- 1. 市场调查 -->
+            <div class="shu-function-card"
+                 data-title="AI 驱动的市场洞察与合规审查引擎"
+                 data-desc="整合市场调研、AI 辅助论证与关联性审查，精准对齐采购需求与市场供给，为决策提供全维度数据支撑。"
+                 onclick="alert('市场调查模块待接入')">
+                <img src="{{ url_for('static', filename='images/市场调查.png') }}" alt="市场调查" class="func-icon">
+                <span class="func-name">市场调查</span>
+            </div>
+
+            <!-- 2. 招标文件智能生成 -->
+            <div class="shu-function-card"
+                 data-title="招标文件智能生成工作台"
+                 data-desc="基于结构化信息自动生成招标文件，支持信息识别与内容编辑，实现从&quot;零到一&quot;的高效创建。"
+                 onclick="window.location.href='/create_record/tender_generate'">
+                <img src="{{ url_for('static', filename='images/招标生成.png') }}" alt="招标文件智能生成" class="func-icon">
+                <span class="func-name">招标文件智能生成</span>
+            </div>
+
+            <!-- 3. 围标串标合规审查 -->
+            <div class="shu-function-card"
+                 data-title="多维度投标文件智能评审中枢"
+                 data-desc="上传多份投标合同，AI智能分析是否存在围标串标等违规行为，保障采购公平公正。"
+                 onclick="window.location.href='/tender_bid_record'">
+                <img src="{{ url_for('static', filename='images/投标论证.png') }}" alt="围标串标合规审查" class="func-icon">
+                <span class="func-name">围标串标合规审查</span>
+            </div>
+
+            <!-- 4. 智能评审 -->
+            <div class="shu-function-card"
+                 data-title="AI 驱动的智能评审与决策支持系统"
+                 data-desc="基于机器学习算法对多份投标合同进行智能评分，自动生成评审报告与决策建议，推荐最优投标方案。"
+                 onclick="window.location.href='/ai_argument'">
+                <img src="{{ url_for('static', filename='images/财会监督.png') }}" alt="智能评审" class="func-icon">
+                <span class="func-name">智能评审</span>
+            </div>
+
+            <!-- 第二行 -->
+            <!-- 5. 合同审查 -->
+            <div class="shu-function-card"
+                 data-title="全生命周期合同合规审查引擎"
+                 data-desc="上传投标方与中标方签署的正式购买合同，AI智能识别合同风险点与合规问题，保障合同安全与合规性。"
+                 onclick="window.location.href='/contract_review_record'">
+                <img src="{{ url_for('static', filename='images/合同审查.png') }}" alt="合同审查" class="func-icon">
+                <span class="func-name">合同审查</span>
+            </div>
+
+            <!-- 6. 招标文件智能审核 -->
+            <div class="shu-function-card"
+                 data-title="招标文件合规性智能审核引擎"
+                 data-desc="上传招标文件，AI逐条审查合规性，自动标注问题条款并定位原文，保障招标文件合法合规。"
+                 onclick="window.location.href='/create_record/tender_compliance'">
+                <img src="{{ url_for('static', filename='images/智能评审.png') }}" alt="招标文件智能审核" class="func-icon">
+                <span class="func-name">招标文件智能审核</span>
+            </div>
+
+            <!-- 7. 咨询上采 -->
+            <div class="shu-function-card"
+                 data-title="AI上采智能采购知识体"
+                 data-desc="作为专属采购智能体，提供7×24小时智能问答服务，精准响应采购政策、流程与实操问题，赋能高效决策。"
+                 onclick="alert('咨询AI上采待嵌入')">
+                <img src="{{ url_for('static', filename='images/咨询上采.png') }}" alt="咨询上采" class="func-icon">
+                <span class="func-name">咨询上采</span>
+            </div>
+
+            <!-- 8. 全链创建 -->
+            <div class="shu-function-card"
+                 data-title="采购全流程一体化智能项目管理平台"
+                 data-desc="打通市场调查、招标生成、投标审核、财会监督等核心模块，实现从需求到验收的全链路闭环管理，提升采购效率与透明度。"
+                 onclick="window.location.href='/full_chain_record'">
+                <img src="{{ url_for('static', filename='images/全链创建.png') }}" alt="全链创建" class="func-icon">
+                <span class="func-name">全链创建</span>
+            </div>
+        </div>
+
+        <!-- 功能描述区域 -->
+        <div class="shu-desc-box">
+            <h2 class="shu-desc-title">智能采&nbsp;&nbsp;&nbsp;&nbsp;上大招</h2>
+            <p class="shu-desc-text"></p>
+        </div>
+
+        <!-- 底部装饰 -->
+        <div class="shu-bottom-deco">
+            <div class="shu-bottom-deco-line"></div>
+            <span class="shu-bottom-deco-text">SHANGHAI UNIVERSITY · INTELLIGENT PROCUREMENT PLATFORM</span>
+            <div class="shu-bottom-deco-line right"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const descTitle = document.querySelector('.shu-desc-title');
+            const descText = document.querySelector('.shu-desc-text');
+            const defaultTitle = '智能采&nbsp;&nbsp;&nbsp;&nbsp;上大招';
+            const defaultText = '';
+
+            const cards = document.querySelectorAll('.shu-function-card');
+
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    const title = this.getAttribute('data-title');
+                    const desc = this.getAttribute('data-desc');
+                    descTitle.innerHTML = title;
+                    descText.textContent = desc;
+                });
+
+                card.addEventListener('mouseleave', function() {
+                    descTitle.innerHTML = defaultTitle;
+                    descText.textContent = defaultText;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
